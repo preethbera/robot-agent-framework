@@ -9,7 +9,8 @@ Do not open only `agent-framework/` as if it were the complete system. The frame
 ## Scope and layout
 
 M0 supplies packaging, the documented framework module skeleton, Docker, and
-development checks. Semantic behavior starts in M1 and is not implemented here.
+development checks. M1 implements the technology-independent core model and
+explicit build-time validation; later pipeline stages remain unimplemented.
 The authoritative plan starts at [docs/README.md](docs/README.md).
 
 | Directory | Purpose |
@@ -61,9 +62,9 @@ There is one workspace bind mount. No host ROS2, PX4, Gazebo, Python environment
 or Docker socket is mounted, and no host ROS environment variables are forwarded.
 PX4 and Gazebo are deferred until a milestone requires them.
 
-## Validate M0
+## Validate M0 and M1
 
-Run the full acceptance checks in a fresh development container:
+Run model tests, packaging regressions, and static checks in a fresh development container:
 
 ```bash
 docker compose -f docker/compose.yaml run --rm -T dev bash docker/check.sh
@@ -83,8 +84,11 @@ python -m ruff format --check --config agent-framework/pyproject.toml .
 python -m mypy --config-file agent-framework/pyproject.toml agent-framework/src/agent_framework agent-framework/tests
 ```
 
-Cross-package integration and e2e directories are reserved for later milestones.
-M0 has no performance hot path to benchmark.
+M1 tests cover mixed/nested Groups and cycle rejection, multi-Channel Capabilities,
+sensing sessions and invocations, contract-static Properties, Constraint targets,
+Channel correlation, and schema/constant validation. Cross-package integration
+and e2e directories are reserved for later milestones. There is no runtime
+communication hot path to benchmark in M1.
 
 ## Reproducibility
 
