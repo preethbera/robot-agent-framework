@@ -1,0 +1,20 @@
+name: agent-framework
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        DEV_UID: ${LOCAL_UID:-1000}
+        DEV_GID: ${LOCAL_GID:-1000}
+    working_dir: /workspace/project
+    volumes:
+      - type: bind
+        source: ..
+        target: /workspace/project
+        bind:
+          create_host_path: false
+    init: true
+    stdin_open: true
+    tty: true
+

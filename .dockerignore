@@ -1,0 +1,15 @@
+**
+!docker/
+!docker/Dockerfile
+!docker/entrypoint.sh
+!docker/requirements-dev.txt
+!docker/ubuntu.sources
+!agent-framework/
+!agent-framework/pyproject.toml
+!agent-framework/README.md
+!agent-framework/src/
+!agent-framework/src/**
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+
