@@ -1,0 +1,7 @@
+schema_version: "0.1.0"
+agent:
+  id: minimal_agent
+  description: Minimal Agent for heterogeneous testing
+expose:
+  - use: test.temperature
+    as: temperature

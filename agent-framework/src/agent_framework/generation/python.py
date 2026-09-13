@@ -475,8 +475,8 @@ from agent_framework.runtime.session import Session
     agent = (
         "class Agent(AgentRuntime):\n"
         + f"    metadata = {metadata!r}\n"
-        + "    def __init__(self, *, instance_id: str, namespace: str = '', runtime: SharedServices | None = None) -> None:\n"  # noqa: E501
-        "        super().__init__(_SPEC, instance_id=instance_id, namespace=namespace, runtime=runtime)\n"  # noqa: E501
+        + "    def __init__(self, *, instance_id: str, namespace: str = '', runtime: SharedServices | None = None, instance_config: dict[str, dict[str, object]] | None = None) -> None:\n"  # noqa: E501
+        "        super().__init__(_SPEC, instance_id=instance_id, namespace=namespace, runtime=runtime, instance_config=instance_config)\n"  # noqa: E501
          + "\n".join(assignments) + "\n"
     )
     return "\n\n".join([header, *types.definitions, *functions, plan, *handles, agent])

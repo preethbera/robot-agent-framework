@@ -1,4 +1,4 @@
-"""Deployment errors.
+"""Deployment errors."""
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
-"""
+class DeploymentError(ValueError):
+    """Invalid Deployment Specification or runtime creation error."""

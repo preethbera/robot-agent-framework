@@ -1,0 +1,22 @@
+schema_version: "0.1.0"
+instances:
+  - id: test_sensor_1
+    agent: test_agent
+    config:
+      ros_namespace: "sensor1"
+      bindings:
+        test:
+          # Simulated override
+          calibration_offset: 1.5
+  - id: test_sensor_2
+    agent: test_agent
+    config:
+      ros_namespace: "sensor2"
+      bindings:
+        test:
+          # Simulated override
+          calibration_offset: 2.5
+  - id: test_min
+    agent: minimal_agent
+    config:
+      ros_namespace: "min1"
