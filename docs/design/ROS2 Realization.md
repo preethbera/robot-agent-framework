@@ -164,3 +164,31 @@ The supported QoS fields in v0.1.0 are `history`, `depth`, `reliability`, and
 Depth must be a non-negative integer; `keep_last` requires positive depth.
 Unspecified QoS remains unspecified; the builder does not invent technology
 QoS defaults. Other QoS fields are unsupported and rejected in this version.
+
+Each binding template contains `endpoints` and `channel_mappings` sequences.
+Endpoint entries add `overridable` (a list such as `name`, `qos.depth`) and
+`requirements` (exact required `name` and/or partial `qos` values) to the endpoint
+fields above. An omitted permission list allows no overrides. Requirements are
+checked on the defaults and after overrides; permission never bypasses them.
+Immutable endpoint fields remain binding-owned by construction.
+
+Example Agent Definition override:
+
+```yaml
+ros2:
+  overrides:
+    temperature.value:
+      name: /native/temperature
+      qos: {depth: 10}
+```
+
+Each Channel mapping names a binding-local `channel`, `endpoint`, and interface
+`part`; optional `field` selects a dotted ROS message field, and optional `adapter`
+names a binding-owned conversion. The builder qualifies Channel and endpoint IDs
+with the exposure alias, validates references, rejects duplicate mappings, and
+requires every resolved Channel to have a mapping. Roles describe the Agent
+runtime's connection: a subscriber receives an Agent-to-consumer Channel; a
+publisher transmits a consumer-to-Agent Channel. Service/action parts obey the
+corresponding client/server directions. Bindings own payload field/schema
+compatibility and conversion logic; the builder does not infer conversions or
+import interface packages to introspect payloads.

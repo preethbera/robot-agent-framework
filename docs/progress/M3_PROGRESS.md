@@ -55,3 +55,14 @@ build with resolution errors. The previous blocker is resolved.
   passed. Tests use the pinned tools in `/tmp/m3-venv` with host `PYTHONPATH`
   removed to avoid unrelated ROS pytest plugin injection.
 - Documented the approved override contract and description encoding.
+
+### Subtask 2 — complete
+
+- Added binding endpoint permission lists and exact mandatory name/QoS
+  requirements, checked before and after overrides. Immutable fields cannot be
+  overridden; malformed values and violations raise resolution errors.
+- Added stable qualified IDs and Channel mapping validation for all endpoint
+  kinds and roles, including action goal/feedback/result/cancel.
+- Focused verification: all 55 ROS2 unit tests passed (28 new); scoped Ruff and
+  strict mypy passed. Unknown global override targets will be checked by the
+  manifest builder in subtask 3.
