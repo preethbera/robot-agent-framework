@@ -219,3 +219,52 @@ def test_late_first_pulse_still_requires_full_warmup(
     component.tick()
     assert len(context.services.node.requests) == 1
     component.close()
+
+
+def test_late_pulse_cannot_hide_expiry(context: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = [0.0]
+    monkeypatch.setattr(offboard_runtime, "monotonic", lambda: clock[0])
+    context.configuration["liveness_owner"] = "application"
+    component = offboard_runtime.create_component(context)
+    component.start()
+    operation: Any = Operation()
+    component.position(NS(xy_valid=True, z_valid=True))
+    value = NS(x=0.0, y=0.0, z=-2.0, yaw=0.0)
+    component.send(value, operation)
+    clock[0] = 0.41
+    with pytest.raises(AgentError, match="interrupted"):
+        component.pulse(NS(), operation)
+    with pytest.raises(AgentError, match="ended"):
+        component.send(value, operation)
+    assert len(context.services.node.published) == 1
+    component.close()
+
+
+def test_exclusive_control_and_publish_failure_cleanup(
+    context: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = offboard_runtime.create_component(context)
+    second = offboard_runtime.create_component(context)
+    first.start()
+    second.start()
+    value = NS(x=0.0, y=0.0, z=-2.0, yaw=0.0)
+    operation: Any = Operation()
+    next_operation: Any = Operation()
+    for component in (first, second):
+        component.position(NS(xy_valid=True, z_valid=True))
+    first.send(value, operation)
+    with pytest.raises(AgentError) as busy:
+        second.send(value, next_operation)
+    assert busy.value.code == FailureCode.BUSY
+
+    def failed_publish(value: object) -> None:
+        raise RuntimeError("native publish failed")
+
+    monkeypatch.setattr(first.heartbeat, "publish", failed_publish)
+    first.tick()
+    assert operation.failures[0].code == FailureCode.TRANSPORT
+    assert first.operation is None
+    second.send(value, next_operation)
+    first.close()
+    second.close()
+    assert not context.services.node.entities

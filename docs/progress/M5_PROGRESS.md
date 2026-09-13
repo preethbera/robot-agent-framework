@@ -94,3 +94,16 @@ checkpoint commit.
   Real ROS2/SITL checks remain pending the isolated environment build.
 - `px4_msgs` compiled successfully outside the project source tree. The pinned
   XRCE bridge and firmware environment build is ongoing.
+
+### Runtime edge-case verification
+
+- Runtime checkpoint: `ed3e940`.
+- Late application pulses cannot conceal a missed liveness deadline; an expired
+  handle cannot restart control. Timer-side native publish failures stop the
+  session and report a structured transport error.
+- Ten focused tests passed, including exclusive control ownership and complete
+  resource release. Scoped Ruff and strict mypy passed.
+- SITL acceptance application and both liveness variants are prepared. The first
+  firmware build exposed an upstream shallow NuttX tag-parsing failure unrelated
+  to SITL. The optional environment now fetches only SITL-required submodules and
+  caches acquisition separately from compilation; upstream sources are unchanged.

@@ -121,7 +121,7 @@ class PositionComponent:
         with self.lock:
             if self.operation is not operation:
                 raise AgentError(FailureCode.NOT_READY, "Send an initial position setpoint first")
-            if self.sent_mode and monotonic() - self.last_heartbeat > 0.4:
+            if monotonic() - self.last_pulse > 0.4:
                 error = AgentError(FailureCode.TIMEOUT, "Offboard heartbeat interrupted")
                 operation.fail(error)
                 self.stop(operation)
@@ -130,6 +130,15 @@ class PositionComponent:
             self._heartbeat()
 
     def tick(self) -> None:
+        try:
+            self._tick()
+        except Exception as error:
+            with self.lock:
+                if self.operation is not None:
+                    self.operation.fail(AgentError(FailureCode.TRANSPORT, str(error)))
+                    self.stop(self.operation)
+
+    def _tick(self) -> None:
         with self.lock:
             operation = self.operation
             if operation is None or self.closed:
