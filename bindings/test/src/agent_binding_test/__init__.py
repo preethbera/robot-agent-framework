@@ -29,6 +29,7 @@ from agent_framework.model import (
     Timing,
 )
 
+from .advanced import protocol_bindings
 from .ros2 import COMMAND, TEMPERATURE, stream_template
 
 NUMBER = PayloadSchema(kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT64)
@@ -102,7 +103,7 @@ def get_bindings() -> BindingPackage:
         parameters={"min": 0.0, "max": 100.0},
         consumer_visible=True,
     )
-    return BindingPackage(
+    package = BindingPackage(
         api_versions=("0.1.0",),
         definitions=(
             BindingDefinition(
@@ -160,4 +161,8 @@ def get_bindings() -> BindingPackage:
                 configure_ros2=stream_template,
             ),
         ),
+    )
+
+    return replace(
+        package, definitions=package.definitions + protocol_bindings(package.definitions[1])
     )

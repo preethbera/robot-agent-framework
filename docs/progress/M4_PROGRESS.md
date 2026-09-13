@@ -60,12 +60,13 @@ The four planned subtasks retain their scope; only dependency order changes.
 
 - M3 artifact integrity checks: **passed at the initial checkpoint**.
 - Authorized runtime design and existing binding/factory code reviewed.
-- No implementation changes; documentation diff check passed.
-- M4 implementation and focused runtime tests: **not started**.
-- M4 acceptance and full regressions: **not run; acceptance not yet passed**.
+- Runtime, generation, and ROS2 integration implemented and focused checks passed.
+- M4 full canonical acceptance and regressions: **pending final checkpoint**.
 - No version changes or M5 work.
 
 ### Generic runtime checkpoint — complete
+
+Commit: `048f4c5`.
 
 - Implemented bounded FIFO Channels (overflow is a structured error), one-value
   Property caches, typed input/output handles, scoped invocation/session handles,
@@ -81,6 +82,8 @@ The four planned subtasks retain their scope; only dependency order changes.
   Scoped Ruff and strict mypy passed.
 
 ### Artifact-driven generator checkpoint — complete
+
+Commit: `d9411a8`.
 
 - Generator requires both finalized artifacts, validates their identity/hash,
   versions, Channel coverage, and custom interface content, and writes an
@@ -99,3 +102,34 @@ The four planned subtasks retain their scope; only dependency order changes.
   fail generation clearly if the necessary adapter is absent.
 - Focused verification: 14 generation/runtime tests passed. Scoped Ruff and
   strict mypy passed, including strict mypy on the generated test Agent package.
+
+### ROS2 runtime integration checkpoint — complete
+
+- Implemented shared context/executor ownership, runtime-local registration,
+  manifest endpoint names/QoS, direct topic/service/action clients and servers,
+  static codecs/adapters, and scoped subscription/server cleanup.
+- Code-backed factories receive resolved configuration, binding realization,
+  instance identity/namespace, and shared services. The services' runtime object
+  supplies runtime identity. Component scopes provide fallback cleanup even when
+  factory creation fails; startup and normal shutdown release components in
+  reverse order before shared infrastructure.
+- Operation state and queues are bounded; native results are correlated to the
+  operation that created them. Explicit action cancellation Channels request
+  native cancellation. Closing a handle releases local resources; it does not
+  invent technology-specific stop commands or implicitly cancel physical work.
+- Native topic streams connect for the duration of a session. Service/action
+  servers accept one request per scoped operation. Multi-Channel messages are
+  assembled from declared mappings before publication or request dispatch.
+- Generated payloads remain Python scalars, dataclasses, and typed collections.
+  Invalid schemas, unsafe native field names, and generated member collisions
+  fail at generation. Empty record cancellation payloads generate valid code.
+- Added external binding fixtures and real ROS2 application tests for Property,
+  invocation, sensing/liveness, native actions (feedback/result/cancellation),
+  service/action servers, factory startup rollback, and factory creation cleanup.
+- Added the pinned standard ROS2 `example_interfaces` package to the canonical
+  image for native action tests; existing interfaces are reused unchanged.
+- Focused canonical Jazzy checks: **21 passed**. Host regressions: **304 passed,
+  3 ROS2 tests skipped** (all three ran successfully in the canonical focused
+  suite). Ruff lint/format and strict mypy of 84 source files passed. Generated
+  test Agent API regenerated from the existing M3 artifacts.
+- No architecture conflicts found; version remains `0.1.0`.

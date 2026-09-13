@@ -161,6 +161,8 @@ class AgentRuntime:
         self.namespace = namespace
         self.lock = RLock()
         self.active: dict[str, Operation] = {}
+        self.openers: dict[str, list[Callable[[Operation], None]]] = {}
+        self._failure: AgentError | None = None
         self.channel_specs = {item.id: item for item in spec.channels}
         self.senders: dict[str, Callable[[object, Operation], None]] = {}
         self.properties = {
@@ -229,6 +231,7 @@ class AgentRuntime:
 
     def fail(self, error: AgentError) -> None:
         with self.lock:
+            self._failure = error
             for buffer in self.properties.values():
                 buffer.fail(error)
             for operation in self.active.values():
@@ -236,6 +239,8 @@ class AgentRuntime:
 
     def begin(self, owner: str, *, capacity: int = 16, timeout: float | None = 5.0) -> Operation:
         with self.lock:
+            if self._failure is not None:
+                raise self._failure
             if self.closed or not self.ready:
                 raise AgentError(
                     FailureCode.CLOSED if self.closed else FailureCode.NOT_READY,
@@ -247,6 +252,13 @@ class AgentRuntime:
                 )
             operation = Operation(self, owner, capacity, timeout)
             self.active[owner] = operation
+            try:
+                for opener in self.openers.get(owner, ()):
+                    opener(operation)
+            except Exception as error:
+                with suppress(Exception):
+                    operation.close()
+                raise AgentError(FailureCode.TRANSPORT, str(error), target=owner) from error
             return operation
 
     def write_property(self, channel: str, value: object) -> None:
@@ -295,4 +307,7 @@ class AgentRuntime:
 
 def create_runtime() -> SharedServices:
     """Create shared infrastructure without exposing ROS classes in the generated API."""
-    return cast(SharedServices, import_module("agent_framework.ros2.runtime").Runtime())
+    try:
+        return cast(SharedServices, import_module("agent_framework.ros2.runtime").Runtime())
+    except Exception as error:
+        raise AgentError(FailureCode.STARTUP, f"Cannot start ROS2 runtime: {error}") from error

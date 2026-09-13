@@ -139,6 +139,29 @@ def test_output_directory_symlink_rejected(artifacts: Path, tmp_path: Path) -> N
     assert not list(outside.iterdir())
 
 
+@pytest.mark.parametrize("invalid", ["schema", "member"])
+def test_invalid_generation_contract_rejected(artifacts: Path, invalid: str) -> None:
+    model = json.loads((artifacts / "resolved_agent_model.json").read_bytes())
+    if invalid == "schema":
+        model["channels"][0]["schema"] = {
+            "kind": "array",
+            "length": -1,
+            "items": {"kind": "scalar", "scalar_type": "float64"},
+        }
+    else:
+        model["properties"].append(
+            {"id": "close", "schema": model["properties"][0]["schema"], "channels": []}
+        )
+    data = canonical_json(model)
+    (artifacts / "resolved_agent_model.json").write_bytes(data)
+    manifest = json.loads((artifacts / "ros2_realization.json").read_bytes())
+    manifest["resolved_agent_model_hash"] = content_hash(data)
+    (artifacts / "ros2_realization.json").write_bytes(canonical_json(manifest))
+    with pytest.raises(GenerationError):
+        generate_python(artifacts)
+    assert not (artifacts / "python").exists()
+
+
 def test_generated_writable_property(artifacts: Path) -> None:
     from copy import deepcopy
 

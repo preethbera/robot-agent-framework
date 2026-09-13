@@ -12,6 +12,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from agent_framework.model import PayloadSchema, ScalarType, SchemaKind, validate_schema
+from agent_framework.runtime.agent import AgentRuntime
 from agent_framework.serialization.hashing import content_hash
 from agent_framework.serialization.json import canonical_json
 
@@ -83,6 +85,12 @@ class Types:
         if kind in {"scalar", "enum"}:
             return f"{self.type(schema, hint)}({expression})"
         if kind == "record":
+            if any(
+                not field.isidentifier() or keyword.iskeyword(field) for field in schema["fields"]
+            ):
+                raise GenerationError(
+                    "native record fields require Python identifiers or a binding adapter"
+                )
             fields = [
                 f"{identifier(field)}={self.decode(child, expression + '.' + field, hint + '_' + field)}"  # noqa: E501
                 for field, child in schema["fields"].items()
@@ -95,6 +103,12 @@ class Types:
     def encode(self, schema: dict[str, Any], target: str, value: str, hint: str) -> list[str]:
         kind = schema["kind"]
         if kind == "record":
+            if any(
+                not field.isidentifier() or keyword.iskeyword(field) for field in schema["fields"]
+            ):
+                raise GenerationError(
+                    "native record fields require Python identifiers or a binding adapter"
+                )
             return [
                 line
                 for field, child in schema["fields"].items()
@@ -184,6 +198,22 @@ class Types:
         return repr(value)
 
 
+def schema_from_data(data: dict[str, Any]) -> PayloadSchema:
+    scalar = ScalarType(data["scalar_type"]) if data.get("scalar_type") is not None else None
+    values = tuple(data.get("values", ()))
+    if scalar is ScalarType.BYTES:
+        values = tuple(base64.b64decode(value, validate=True) for value in values)
+    return PayloadSchema(
+        kind=SchemaKind(data["kind"]),
+        scalar_type=scalar,
+        fields={name: schema_from_data(child) for name, child in data.get("fields", {}).items()},
+        items=schema_from_data(data["items"]) if data.get("items") is not None else None,
+        length=data.get("length"),
+        values=values,
+        metadata=data.get("metadata", {}),
+    )
+
+
 def load_artifacts(directory: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     try:
         model_bytes = (directory / "resolved_agent_model.json").read_bytes()
@@ -215,8 +245,14 @@ def load_artifacts(directory: Path) -> tuple[dict[str, Any], dict[str, Any]]:
             raise GenerationError("finalized Channel mappings do not cover the resolved model")
         if any(item["endpoint"] not in endpoints for item in manifest["channel_mappings"]):
             raise GenerationError("unknown finalized endpoint in Channel mapping")
+        canonical_json(model)
+        canonical_json(manifest)
+        for item in (*model["properties"], *model["channels"]):
+            validate_schema(schema_from_data(item["schema"]))
         return model, manifest
-    except (OSError, KeyError, TypeError, json.JSONDecodeError) as error:
+    except GenerationError:
+        raise
+    except (OSError, KeyError, TypeError, ValueError, AttributeError, RecursionError) as error:
         raise GenerationError(f"invalid or missing generation inputs: {error}") from error
 
 
@@ -241,7 +277,11 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
             "channel_specs",
             "properties",
             "components",
-        },
+            "openers",
+            "_owns_runtime",
+            "_failure",
+        }
+        | set(dir(AgentRuntime)),
     )
     channels = {item["id"]: item for item in model["channels"]}
     channel_types = {name: types.type(item["schema"], name) for name, item in channels.items()}
@@ -303,7 +343,7 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
         functions.append(f"def _decode_{index}(message: Any) -> Any:\n    return {decode}\n")
         functions.append(
             f"def _encode_{index}(message: Any, value: Any) -> None:\n"
-            + "\n".join("    " + line for line in encode)
+            + "\n".join("    " + line for line in (encode or ["pass"]))
             + "\n"
         )
         codecs.append(

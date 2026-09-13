@@ -11,6 +11,13 @@ RUN apt-get -o Dir::Etc::sourcelist=/etc/apt/m0-ubuntu.sources \
         -o Dir::Etc::sourceparts=- install -y --no-install-recommends python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
+# Existing standard action interfaces used by the real M4 transport tests.
+ARG ROS_EXAMPLE_INTERFACES_VERSION=0.12.1-1noble.20260902.030327
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        "ros-jazzy-example-interfaces=${ROS_EXAMPLE_INTERFACES_VERSION}" \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV VIRTUAL_ENV=/opt/agent-framework-venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}" \
     HOME=/home/developer \
