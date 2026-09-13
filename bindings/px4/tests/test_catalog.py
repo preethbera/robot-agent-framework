@@ -16,7 +16,7 @@ from agent_framework.ros2 import write_realization
 
 def test_catalog_and_generated_pipeline(tmp_path: Path) -> None:
     package = get_bindings()
-    assert len(package.definitions) == 9
+    assert len(package.definitions) == 10
     for definition in package.definitions:
         validate_binding(definition)
     model = AgentDefinition(
@@ -24,7 +24,8 @@ def test_catalog_and_generated_pipeline(tmp_path: Path) -> None:
         id="px4_test",
         description="PX4 test",
         expose=tuple(
-            Exposure(use=d.id, alias=d.id.removeprefix("px4.")) for d in package.definitions
+            Exposure(use=d.id, alias=d.id.removeprefix("px4.").replace(".", "_"))
+            for d in package.definitions
         ),
     )
     resolved = resolve_agent(model)

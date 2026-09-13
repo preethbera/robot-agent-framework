@@ -74,3 +74,23 @@ checkpoint commit.
 - Documentation diff check: passed.
 - Catalog tests passed; runtime and SITL acceptance remain pending.
 - M5 acceptance: **not passed; pending runtime implementation and SITL checks**.
+
+## Runtime checkpoint
+
+- Catalog/package/pins checkpoint: `fc344f2`.
+- Ten modular definitions now include the Offboard position-control session.
+- Implemented native command service transport, per-runtime/endpoint bounded
+  command coordination, terminal acknowledgement names, and cleanup. No retry
+  or forced arming; acknowledgements do not update observed Properties.
+- Timeout/abandonment quarantines the command lane for that runtime, avoiding
+  late response misassociation in PX4's single-pending-request service. The
+  implementation uses the existing framework factory/lifecycle contract.
+- Offboard implements fresh-position checks, explicit initial setpoint, full
+  heartbeat warm-up, binding/application liveness, mode-request acknowledgement,
+  observed active/inactive status, exclusive session ownership, and cleanup.
+- Shutdown stops proof of life and leaves PX4's configured loss-of-Offboard
+  policy authoritative. No implicit arming or failsafe parameter changes.
+- Eight focused tests passed; scoped Ruff and strict mypy (10 files) passed.
+  Real ROS2/SITL checks remain pending the isolated environment build.
+- `px4_msgs` compiled successfully outside the project source tree. The pinned
+  XRCE bridge and firmware environment build is ongoing.

@@ -6,8 +6,9 @@ __version__ = "0.1.0"
 
 
 def get_bindings() -> BindingPackage:
-    from . import commands, properties
+    from . import commands, offboard, properties
 
     return BindingPackage(
-        api_versions=("0.1.0",), definitions=properties.definitions() + commands.definitions()
+        api_versions=("0.1.0",),
+        definitions=properties.definitions() + commands.definitions() + (offboard.definition(),),
     )
