@@ -12,8 +12,8 @@ instances:
     config:
       ros_namespace: "ns1"
       bindings:
-        test:
-          offset: 1
+        lidar_stream:
+          max_rate_hz: 8.0
   - id: inst2
     agent: minimal_agent
 """
@@ -24,7 +24,7 @@ instances:
     assert spec.instances[0].id == "inst1"
     assert spec.instances[0].agent == "test_agent"
     assert spec.instances[0].namespace == "ns1"
-    assert spec.instances[0].config["test"]["offset"] == 1
+    assert spec.instances[0].config["lidar_stream"]["max_rate_hz"] == 8.0
     
     assert spec.instances[1].id == "inst2"
     assert spec.instances[1].agent == "minimal_agent"

@@ -39,6 +39,7 @@ class Codec:
 class BindingSpec:
     id: str
     configuration: Mapping[str, object]
+    runtime_parameters: tuple[str, ...]
     realization: Mapping[str, Any]
     runtime_factory: str | None = None
 

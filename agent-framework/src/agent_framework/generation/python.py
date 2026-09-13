@@ -440,7 +440,7 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
             ],
         }
         bindings.append(
-            f"BindingSpec({binding['id']!r}, {binding['configuration']!r}, {relevant!r}, {binding['runtime_factory']!r})"  # noqa: E501
+            f"BindingSpec({binding['id']!r}, {binding['configuration']!r}, tuple({binding.get('runtime_parameters', [])!r}), {relevant!r}, {binding['runtime_factory']!r})"  # noqa: E501
         )
     metadata = {key: model[key] for key in ("description", "metadata", "groups", "constraints")}
     header = '''"""Generated Agent API, version 0.1.0. Do not edit."""

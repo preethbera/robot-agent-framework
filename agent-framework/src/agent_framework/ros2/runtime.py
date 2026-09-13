@@ -135,6 +135,11 @@ class Runtime:
                                 "Instance config override specifies unknown "
                                 f"configuration key '{key}'",
                             )
+                        if key not in binding.runtime_parameters:
+                            raise AgentError(
+                                FailureCode.STARTUP,
+                                f"Instance config override modifies build-time parameter '{key}'",
+                            )
                         configuration[key] = value
 
                 context = FactoryContext(

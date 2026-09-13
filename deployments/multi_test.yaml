@@ -5,17 +5,15 @@ instances:
     config:
       ros_namespace: "sensor1"
       bindings:
-        test:
-          # Simulated override
-          calibration_offset: 1.5
+        lidar_stream:
+          max_rate_hz: 8.0
   - id: test_sensor_2
     agent: test_agent
     config:
       ros_namespace: "sensor2"
       bindings:
-        test:
-          # Simulated override
-          calibration_offset: 2.5
+        lidar_stream:
+          max_rate_hz: 15.0
   - id: test_min
     agent: minimal_agent
     config:
