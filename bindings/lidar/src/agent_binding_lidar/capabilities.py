@@ -24,7 +24,10 @@ def definitions() -> tuple[BindingDefinition, ...]:
         kind=SchemaKind.RECORD,
         fields={
             "ranges": PayloadSchema(
-                kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT32
+                kind=SchemaKind.SEQUENCE,
+                items=PayloadSchema(
+                    kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT32
+                ),
             )
         },
     )
@@ -45,7 +48,7 @@ def definitions() -> tuple[BindingDefinition, ...]:
                 element=Capability(
                     id="scan",
                     description="Continuous high-bandwidth output",
-                    execution=Execution.INVOCATION,
+                    execution=Execution.SESSION,
                     channels=("scan",),
                 ),
                 channels=(scan_channel,),

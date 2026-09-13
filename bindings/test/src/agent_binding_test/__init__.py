@@ -141,9 +141,13 @@ def get_bindings() -> BindingPackage:
                 id="test.stream",
                 description="Continuous sensing",
                 primitive=Primitive.CAPABILITY,
-                default_semantics=_stream({"max_rate_hz": 10.0, "liveness_owner": "binding"}),
+                default_semantics=_stream(
+                    {"max_rate_hz": 10.0, "liveness_owner": "binding"}
+                ),
                 mandatory_requirements=BindingRequirements(
-                    channels=_stream({"max_rate_hz": 10.0, "liveness_owner": "binding"}).channels
+                    channels=_stream(
+                        {"max_rate_hz": 10.0, "liveness_owner": "binding"}
+                    ).channels
                 ),
                 configuration_schema=PayloadSchema(
                     kind=SchemaKind.RECORD,
@@ -156,7 +160,10 @@ def get_bindings() -> BindingPackage:
                         ),
                     },
                 ),
-                configuration_defaults={"max_rate_hz": 10.0, "liveness_owner": "binding"},
+                configuration_defaults={
+                    "max_rate_hz": 10.0,
+                    "liveness_owner": "binding",
+                },
                 configure=_stream,
                 configure_ros2=stream_template,
             ),
@@ -164,5 +171,6 @@ def get_bindings() -> BindingPackage:
     )
 
     return replace(
-        package, definitions=package.definitions + protocol_bindings(package.definitions[1])
+        package,
+        definitions=package.definitions + protocol_bindings(package.definitions[1]),
     )

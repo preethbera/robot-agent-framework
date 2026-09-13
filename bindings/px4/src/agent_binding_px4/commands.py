@@ -23,7 +23,16 @@ from agent_framework.model import (
     SchemaKind,
 )
 
-from .catalog import CONFIG, DEFAULTS, EMPTY, NUMBER, STRING, endpoint, mapping, validate_config
+from .catalog import (
+    CONFIG,
+    DEFAULTS,
+    EMPTY,
+    NUMBER,
+    STRING,
+    endpoint,
+    mapping,
+    validate_config,
+)
 
 
 @dataclass(frozen=True)
@@ -63,7 +72,10 @@ COMMANDS = (
     Command("arm", 400, EMPTY, lambda value: (1.0, 0.0)),
     Command("disarm", 400, EMPTY, lambda value: (0.0, 0.0)),
     Command(
-        "land", 21, EMPTY, lambda value: (0.0, 0.0, 0.0, math.nan, math.nan, math.nan, math.nan)
+        "land",
+        21,
+        EMPTY,
+        lambda value: (0.0, 0.0, 0.0, math.nan, math.nan, math.nan, math.nan),
     ),
     Command("hold", 176, EMPTY, lambda value: (1.0, 4.0, 3.0)),
     Command(
@@ -73,9 +85,18 @@ COMMANDS = (
             kind=SchemaKind.RECORD,
             fields={
                 key: NUMBER
-                for key in ("radius_m", "speed_m_s", "latitude_deg", "longitude_deg", "altitude_m")
+                for key in (
+                    "radius_m",
+                    "speed_m_s",
+                    "latitude_deg",
+                    "longitude_deg",
+                    "altitude_m",
+                )
             },
-            metadata={"altitude_reference": "AMSL", "radius_sign": "positive_clockwise"},
+            metadata={
+                "altitude_reference": "AMSL",
+                "radius_sign": "positive_clockwise",
+            },
         ),
         orbit_parameters,
     ),
@@ -129,7 +150,9 @@ def definition(command: Command) -> BindingDefinition:
         runtime_mode=RuntimeMode.CODE_BACKED,
         runtime_factory="agent_binding_px4.runtime:create_command",
         ros2_template={
-            "endpoints": [endpoint("command", "VehicleCommand", "vehicle_command", service=True)],
+            "endpoints": [
+                endpoint("command", "VehicleCommand", "vehicle_command", service=True)
+            ],
             "channel_mappings": [
                 mapping("request", "command", "request", "request"),
                 mapping("ack", "command", "response", "reply.result"),

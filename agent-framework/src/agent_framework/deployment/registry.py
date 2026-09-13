@@ -21,7 +21,7 @@ class Deployment:
         self.spec = spec
         self._owns_runtime = runtime is None
         self.runtime: SharedServices | None = None
-        
+
         try:
             self.runtime = runtime if runtime is not None else create_shared_runtime()
             self.instances: dict[str, AgentRuntime] = {}
@@ -49,14 +49,14 @@ class Deployment:
                 except Exception as error:
                     failures.append(error)
             self.instances.clear()
-            
+
         if self._owns_runtime and self.runtime is not None:
             try:
                 self.runtime.close()
             except Exception as error:
                 failures.append(error)
             self.runtime = None
-            
+
         if failures:
             raise DeploymentError("Deployment cleanup failed") from failures[0]
 

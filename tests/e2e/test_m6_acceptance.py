@@ -17,18 +17,22 @@ WORKSPACE = Path(__file__).resolve().parents[2]
 def deployment_artifacts(tmp_path_factory: pytest.TempPathFactory) -> Path:
     if importlib.util.find_spec("rclpy") is None:
         pytest.skip("ROS2 not available")
-        
+
     build_root = tmp_path_factory.mktemp("build")
-    
+
     # Build test_agent
-    agent_def = load_agent_definition(WORKSPACE / "agents" / "test_agent" / "agent.yaml")
+    agent_def = load_agent_definition(
+        WORKSPACE / "agents" / "test_agent" / "agent.yaml"
+    )
     test_agent = resolve_agent(agent_def)
     write_artifacts(test_agent, build_root)
     write_realization(test_agent, build_root)
     generate_python(build_root / "build" / "agents" / test_agent.agent.id)
 
     # Build minimal_agent
-    min_def = load_agent_definition(WORKSPACE / "agents" / "minimal_agent" / "agent.yaml")
+    min_def = load_agent_definition(
+        WORKSPACE / "agents" / "minimal_agent" / "agent.yaml"
+    )
     minimal_agent = resolve_agent(min_def)
     write_artifacts(minimal_agent, build_root)
     write_realization(minimal_agent, build_root)

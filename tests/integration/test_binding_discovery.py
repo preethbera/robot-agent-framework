@@ -25,12 +25,15 @@ def test_unreferenced_provider_is_not_loaded() -> None:
         name="unused", value="nonexistent:provider", group="agent_framework.bindings"
     )
     with patch(
-        "agent_framework.binding.discovery.entry_points", return_value=EntryPoints((point,))
+        "agent_framework.binding.discovery.entry_points",
+        return_value=EntryPoints((point,)),
     ):
         assert not discover_bindings([]).packages
 
 
-@pytest.mark.parametrize("reference", ["missing.element", "test.missing", "unqualified"])
+@pytest.mark.parametrize(
+    "reference", ["missing.element", "test.missing", "unqualified"]
+)
 def test_missing_references(reference: str) -> None:
     with pytest.raises(MissingBindingError):
         discover_bindings([reference])
@@ -41,7 +44,9 @@ def test_incompatible_api() -> None:
         patch.object(
             EntryPoint,
             "load",
-            return_value=lambda: BindingPackage(api_versions=("99.0.0",), definitions=()),
+            return_value=lambda: BindingPackage(
+                api_versions=("99.0.0",), definitions=()
+            ),
         ),
         pytest.raises(IncompatibleBindingError, match="incompatible"),
     ):
@@ -62,20 +67,30 @@ def test_ambiguous_provider() -> None:
 
 def test_configuration_schema_rejects_unknown_keys_and_values() -> None:
     definition = discover_bindings(["test.stream"]).get("test.stream")
-    for configuration in ({"unknown": 1}, {"max_rate_hz": "bad"}, {"liveness_owner": "unknown"}):
+    for configuration in (
+        {"unknown": 1},
+        {"max_rate_hz": "bad"},
+        {"liveness_owner": "unknown"},
+    ):
         with pytest.raises(BindingError, match="configuration"):
             configure_binding(definition, configuration)
-    assert configure_binding(definition, {"max_rate_hz": 5}).channels[0].timing is not None
+    assert (
+        configure_binding(definition, {"max_rate_hz": 5}).channels[0].timing is not None
+    )
 
 
 def test_dependency_discovery_reports_missing_dependency() -> None:
     registry = discover_bindings(["test.temperature"])
-    definition = replace(registry.get("test.temperature"), dependencies=("missing.element",))
+    definition = replace(
+        registry.get("test.temperature"), dependencies=("missing.element",)
+    )
     with (
         patch.object(
             EntryPoint,
             "load",
-            return_value=lambda: BindingPackage(api_versions=("0.1.0",), definitions=(definition,)),
+            return_value=lambda: BindingPackage(
+                api_versions=("0.1.0",), definitions=(definition,)
+            ),
         ),
         pytest.raises(MissingBindingError, match="missing"),
     ):

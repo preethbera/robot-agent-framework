@@ -25,10 +25,10 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
 
     if not isinstance(data, dict):
         raise DeploymentError("Deployment Specification must be a mapping")
-    
+
     if data.get("schema_version") != "0.1.0":
         raise DeploymentError("unsupported deployment schema version")
-    
+
     instances_data = data.get("instances", [])
     if not isinstance(instances_data, list):
         raise DeploymentError("instances must be a list")
@@ -60,11 +60,13 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
         if not isinstance(namespace, str):
             raise DeploymentError(f"instance '{instance_id}' has invalid namespace")
 
-        instances.append(AgentInstance(
-            id=instance_id,
-            agent=agent_id,
-            namespace=namespace,
-        ))
+        instances.append(
+            AgentInstance(
+                id=instance_id,
+                agent=agent_id,
+                namespace=namespace,
+            )
+        )
 
     return DeploymentSpec(schema_version="0.1.0", instances=tuple(instances))
 

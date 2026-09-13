@@ -23,7 +23,16 @@ from agent_framework.model import (
     Timing,
 )
 
-from .catalog import CONFIG, DEFAULTS, EMPTY, NUMBER, STRING, endpoint, mapping, validate_config
+from .catalog import (
+    CONFIG,
+    DEFAULTS,
+    EMPTY,
+    NUMBER,
+    STRING,
+    endpoint,
+    mapping,
+    validate_config,
+)
 
 SETPOINT = PayloadSchema(
     kind=SchemaKind.RECORD,
@@ -36,7 +45,9 @@ OFFBOARD_CONFIG = PayloadSchema(
     fields={
         **CONFIG.fields,
         "liveness_owner": PayloadSchema(
-            kind=SchemaKind.ENUM, scalar_type=ScalarType.STRING, values=("binding", "application")
+            kind=SchemaKind.ENUM,
+            scalar_type=ScalarType.STRING,
+            values=("binding", "application"),
         ),
     },
 )
@@ -106,9 +117,17 @@ def realization(config: Mapping[str, object]) -> Mapping[str, object]:
     return {
         "endpoints": [
             endpoint("command", "VehicleCommand", "vehicle_command", service=True),
-            endpoint("setpoint", "TrajectorySetpoint", "in/trajectory_setpoint", publisher=True),
             endpoint(
-                "heartbeat", "OffboardControlMode", "in/offboard_control_mode", publisher=True
+                "setpoint",
+                "TrajectorySetpoint",
+                "in/trajectory_setpoint",
+                publisher=True,
+            ),
+            endpoint(
+                "heartbeat",
+                "OffboardControlMode",
+                "in/offboard_control_mode",
+                publisher=True,
             ),
             endpoint("state", "VehicleStatus", "out/vehicle_status_v1"),
             endpoint("position", "VehicleLocalPosition", "out/vehicle_local_position"),

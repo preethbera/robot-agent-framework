@@ -44,22 +44,39 @@ COMMAND: dict[str, object] = {
                 "durability": "volatile",
             },
             "overridable": ["name", "qos.depth", "qos.reliability"],
-            "requirements": {"qos": {"reliability": "reliable", "durability": "volatile"}},
+            "requirements": {
+                "qos": {"reliability": "reliable", "durability": "volatile"}
+            },
         }
     ],
     "channel_mappings": [
-        {"channel": "request", "endpoint": "command", "part": "request", "field": "value"},
-        {"channel": "result", "endpoint": "command", "part": "response", "field": "result"},
+        {
+            "channel": "request",
+            "endpoint": "command",
+            "part": "request",
+            "field": "value",
+        },
+        {
+            "channel": "result",
+            "endpoint": "command",
+            "part": "response",
+            "field": "result",
+        },
     ],
     "custom_interfaces": [
         {
             "interface_type": "agent_binding_test_interfaces/srv/Command",
             "reason": "The test command requires one float64 request and one float64 result; "
             "standard Trigger/SetBool/AddTwoInts services cannot preserve that payload.",
-            "parts": {"request": {"value": "float64"}, "response": {"result": "float64"}},
+            "parts": {
+                "request": {"value": "float64"},
+                "response": {"result": "float64"},
+            },
         }
     ],
-    "startup": [{"endpoint": "command", "requirement": "service available before invocation"}],
+    "startup": [
+        {"endpoint": "command", "requirement": "service available before invocation"}
+    ],
 }
 
 
@@ -100,14 +117,25 @@ def stream_template(configuration: Mapping[str, object]) -> Mapping[str, object]
             }
         )
         mappings.append(
-            {"channel": "liveness", "endpoint": "liveness", "part": "message", "field": "data"}
+            {
+                "channel": "liveness",
+                "endpoint": "liveness",
+                "part": "message",
+                "field": "data",
+            }
         )
     else:
-        internal.append({"responsibility": "liveness", "owner": "binding", "max_gap_s": 0.5})
+        internal.append(
+            {"responsibility": "liveness", "owner": "binding", "max_gap_s": 0.5}
+        )
     return {
         "endpoints": endpoints,
         "channel_mappings": mappings,
         "internal_communication": internal,
-        "startup": [{"endpoint": "output", "requirement": "connect before session starts"}],
-        "lifecycle": [{"endpoint": "output", "requirement": "disconnect when session closes"}],
+        "startup": [
+            {"endpoint": "output", "requirement": "connect before session starts"}
+        ],
+        "lifecycle": [
+            {"endpoint": "output", "requirement": "disconnect when session closes"}
+        ],
     }

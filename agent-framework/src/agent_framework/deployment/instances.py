@@ -19,7 +19,7 @@ def create_instance(
     """Create an AgentRuntime for the given instance using its generated Python API."""
     package_name = "agent_" + identifier(instance.agent)
     package_path = build_root / instance.agent / "python" / package_name
-    
+
     if not package_path.is_dir():
         raise DeploymentError(
             f"generated Python API not found for agent '{instance.agent}' at {package_path}"
@@ -39,16 +39,18 @@ def create_instance(
 
     agent_cls = getattr(module, "Agent", None)
     if agent_cls is None:
-        raise DeploymentError(
-            f"generated module for '{instance.agent}' is missing the Agent class"
-        )
-        
+        raise DeploymentError(f"generated module for '{instance.agent}' is missing the Agent class")
+
     try:
         from typing import cast
-        return cast(AgentRuntime, agent_cls(
-            instance_id=instance.id,
-            namespace=instance.namespace,
-            runtime=runtime,
-        ))
+
+        return cast(
+            AgentRuntime,
+            agent_cls(
+                instance_id=instance.id,
+                namespace=instance.namespace,
+                runtime=runtime,
+            ),
+        )
     except Exception as error:
         raise DeploymentError(f"failed to instantiate agent '{instance.id}': {error}") from error

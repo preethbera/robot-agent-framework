@@ -14,7 +14,9 @@ from agent_framework.runtime.errors import AgentError, FailureCode
 
 def direct() -> None:
     Command = importlib.import_module("agent_binding_test_interfaces.srv").Command
-    ReentrantCallbackGroup = importlib.import_module("rclpy.callback_groups").ReentrantCallbackGroup
+    ReentrantCallbackGroup = importlib.import_module(
+        "rclpy.callback_groups"
+    ).ReentrantCallbackGroup
     Float64 = importlib.import_module("std_msgs.msg").Float64
 
     shared = Runtime()
@@ -34,14 +36,23 @@ def direct() -> None:
         sensor.publish(Float64(data=7.0))
 
     for instance, value in (("m4_a", 21.5), ("m4_b", 31.5)):
-        temperature = node.create_publisher(Float64, f"/native/{instance}/temperature", 5)
+        temperature = node.create_publisher(
+            Float64, f"/native/{instance}/temperature", 5
+        )
         sensor = node.create_publisher(Float64, f"/native/{instance}/sensor/output", 5)
         node.create_timer(
-            0.2, lambda t=temperature, s=sensor, v=value: publish(t, s, v), callback_group=group
+            0.2,
+            lambda t=temperature, s=sensor, v=value: publish(t, s, v),
+            callback_group=group,
         )
-        node.create_service(Command, f"/native/{instance}/command", command, callback_group=group)
+        node.create_service(
+            Command, f"/native/{instance}/command", command, callback_group=group
+        )
         node.create_subscription(
-            Float64, f"/native/{instance}/sensor/liveness", lambda message: liveness.set(), 5
+            Float64,
+            f"/native/{instance}/sensor/liveness",
+            lambda message: liveness.set(),
+            5,
         )
     try:
         application = importlib.import_module("m4_application")
@@ -158,7 +169,9 @@ def protocols() -> None:
     client = actions.ActionClient(
         node, Fibonacci, "/native/action_server/fibonacci", callback_group=group
     )
-    service = node.create_client(Command, "/native/service_server/command", callback_group=group)
+    service = node.create_client(
+        Command, "/native/service_server/command", callback_group=group
+    )
     try:
         module = importlib.import_module("agent_action_agent")
         with module.Agent(instance_id="action_client") as agent:
@@ -177,14 +190,20 @@ def protocols() -> None:
                 else:
                     raise AssertionError("native cancellation did not reach the API")
         module = importlib.import_module("agent_command_server_agent")
-        with module.Agent(instance_id="service_server") as agent, agent.command.start() as call:
+        with (
+            module.Agent(instance_id="service_server") as agent,
+            agent.command.start() as call,
+        ):
             assert service.wait_for_service(timeout_sec=5)
             response = service.call_async(Command.Request(value=5.0))
             assert call.request.read(timeout=5) == 5.0
             call.result.send(10.0)
             assert wait(response).result == 10.0
         module = importlib.import_module("agent_action_server_agent")
-        with module.Agent(instance_id="action_server") as agent, agent.task.start() as call:
+        with (
+            module.Agent(instance_id="action_server") as agent,
+            agent.task.start() as call,
+        ):
             assert client.wait_for_server(timeout_sec=5)
             handle = wait(client.send_goal_async(Fibonacci.Goal(order=3)))
             assert handle.accepted and call.goal.read(timeout=5) == 3

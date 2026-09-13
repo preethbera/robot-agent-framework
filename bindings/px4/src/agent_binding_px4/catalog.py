@@ -34,7 +34,12 @@ def validate_config(config: Mapping[str, object]) -> None:
 
 
 def endpoint(
-    identifier: str, interface: str, topic: str, *, service: bool = False, publisher: bool = False
+    identifier: str,
+    interface: str,
+    topic: str,
+    *,
+    service: bool = False,
+    publisher: bool = False,
 ) -> dict[str, Any]:
     qos = {
         "history": "keep_last",

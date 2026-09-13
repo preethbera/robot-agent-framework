@@ -27,15 +27,22 @@ def run(arguments: list[str], directory: Path, *, hash_seed: str = "0") -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_normal_wheels_discover_outside_workspace_without_yaml_or_ros(tmp_path: Path) -> None:
+def test_normal_wheels_discover_outside_workspace_without_yaml_or_ros(
+    tmp_path: Path,
+) -> None:
     sources = tmp_path / "sources"
     wheels = tmp_path / "wheels"
-    for relative, name in [("agent-framework", "framework"), ("bindings/test", "binding")]:
+    for relative, name in [
+        ("agent-framework", "framework"),
+        ("bindings/test", "binding"),
+    ]:
         source = sources / name
         shutil.copytree(
             WORKSPACE / relative,
             source,
-            ignore=shutil.ignore_patterns("*.egg-info", "__pycache__", ".*cache", "build"),
+            ignore=shutil.ignore_patterns(
+                "*.egg-info", "__pycache__", ".*cache", "build"
+            ),
         )
         run(
             [
@@ -106,7 +113,13 @@ write_artifacts(resolve_agent(load_agent_definition(Path(sys.argv[1]))), Path(sy
 """
     outputs = (tmp_path / "first", tmp_path / "second")
     for output, seed in zip(outputs, ("1", "987654"), strict=True):
-        run([sys.executable, "-c", program, str(source), str(output)], tmp_path, hash_seed=seed)
+        run(
+            [sys.executable, "-c", program, str(source), str(output)],
+            tmp_path,
+            hash_seed=seed,
+        )
     for name in ("resolved_agent_model.json", "binding_lock.json"):
         relative = Path("build/agents/test_agent") / name
-        assert (outputs[0] / relative).read_bytes() == (outputs[1] / relative).read_bytes()
+        assert (outputs[0] / relative).read_bytes() == (
+            outputs[1] / relative
+        ).read_bytes()

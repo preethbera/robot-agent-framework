@@ -4,6 +4,7 @@ from dataclasses import replace
 from typing import cast
 
 import pytest
+
 from agent_framework.model import (
     Agent,
     Capability,

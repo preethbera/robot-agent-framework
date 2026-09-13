@@ -4,6 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+
 from agent_framework.definition.model import AgentDefinition, Exposure
 from agent_framework.resolution.artifacts import write_artifacts
 from agent_framework.resolution.resolver import Resolution, resolve_agent

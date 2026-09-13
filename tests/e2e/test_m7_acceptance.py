@@ -12,22 +12,25 @@ from agent_framework.ros2 import write_realization
 
 WORKSPACE = Path(__file__).resolve().parents[2]
 
+
 @pytest.fixture(scope="module")
 def deployment_artifacts(tmp_path_factory: pytest.TempPathFactory) -> Path:
     if importlib.util.find_spec("rclpy") is None:
         pytest.skip("ROS2 not available")
     if importlib.util.find_spec("px4_msgs") is None:
         pytest.skip("PX4 messages are not available")
-        
+
     build_root = tmp_path_factory.mktemp("build")
-    
+
     # Build sensor_drone agent
-    agent_def = load_agent_definition(WORKSPACE / "agents" / "sensor_drone" / "agent.yaml")
+    agent_def = load_agent_definition(
+        WORKSPACE / "agents" / "sensor_drone" / "agent.yaml"
+    )
     sensor_drone = resolve_agent(agent_def)
-    
+
     # 5. M7 definition resolves without error
     write_artifacts(sensor_drone, build_root)
-    
+
     # 6. Realization processes existing endpoints without validation errors
     write_realization(sensor_drone, build_root)
     # 6. Python API is generated only after ROS2 realization
@@ -110,17 +113,19 @@ def main():
         assert hasattr(drone1, 'lidar_performance')
         
         # 9. A Group mixes sensor Properties and Capabilities
-        assert "sensor_suite" in [g.id for g in drone1.spec.metadata.get("groups", [])]
+        assert "sensor_suite" in [g["id"] for g in drone1.spec.metadata.get("groups", [])]
 
         scan_msg = LaserScan()
         status_msg = DiagnosticStatus()
-        status_msg.level = 0
+        status_msg.level = b'\\x00'
+        status_msg.name = "lidar"
+        status_msg.message = "OK"
+        status_msg.hardware_id = "lidar_1"
         perf_msg = Vector3()
         perf_msg.x = 0.01
         perf_msg.y = 2.0
         perf_msg.z = 0.0
         
-        scan_pub.publish(scan_msg)
         status_pub.publish(status_msg)
         perf_pub.publish(perf_msg)
         
@@ -128,14 +133,15 @@ def main():
         time.sleep(0.5)
         
         # 11. Application source contains no direct ROS2 or PX4 APIs.
-        status_val = drone1.lidar_status.read(timeout=1.0)
+        status_val = drone1.lidar_status.get(timeout=1.0)
         assert status_val == 0
         
         with drone1.scan.start(timeout=1.0) as call:
+            scan_pub.publish(scan_msg)
             scan_val = call.scan.read(timeout=1.0)
             assert hasattr(scan_val, 'ranges')
         
-        perf_val = drone1.lidar_performance.read(timeout=1.0)
+        perf_val = drone1.lidar_performance.get(timeout=1.0)
         assert hasattr(perf_val, 'latency')
         assert hasattr(perf_val, 'queue_depth')
         assert hasattr(perf_val, 'dropped_samples')
@@ -166,6 +172,7 @@ if __name__ == "__main__":
     assert result.returncode == 0, result.stdout + result.stderr
 
     return build_root / "build" / "agents"
+
 
 def test_m7_demo(deployment_artifacts: Path) -> None:
     pass

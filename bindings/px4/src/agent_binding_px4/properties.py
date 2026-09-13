@@ -1,6 +1,10 @@
 """Direct native state mappings; no command or lifecycle policy in state Properties."""
 
-from agent_framework.binding.definition import BindingDefinition, BindingSemantics, Primitive
+from agent_framework.binding.definition import (
+    BindingDefinition,
+    BindingSemantics,
+    Primitive,
+)
 from agent_framework.model import (
     Cardinality,
     Channel,
@@ -33,7 +37,14 @@ def definitions() -> tuple[BindingDefinition, ...]:
                 "landed",
                 None,
             ),
-            ("position", VECTOR, "VehicleLocalPosition", "out/vehicle_local_position", None, None),
+            (
+                "position",
+                VECTOR,
+                "VehicleLocalPosition",
+                "out/vehicle_local_position",
+                None,
+                None,
+            ),
             (
                 "velocity",
                 velocity,
@@ -84,13 +95,18 @@ def _property(
         primitive=Primitive.PROPERTY,
         default_semantics=BindingSemantics(
             element=Property(
-                id=name, description="Observed " + name, schema=schema, channels=("value",)
+                id=name,
+                description="Observed " + name,
+                schema=schema,
+                channels=("value",),
             ),
             channels=(value,),
         ),
         ros2_template={
             "endpoints": [endpoint("state", interface, topic)],
-            "channel_mappings": [mapping("value", "state", field=field, adapter=adapter)],
+            "channel_mappings": [
+                mapping("value", "state", field=field, adapter=adapter)
+            ],
         },
     )
 

@@ -21,7 +21,9 @@ WORKSPACE = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(scope="module")
-def built_agents(tmp_path_factory: pytest.TempPathFactory) -> tuple[tuple[Path, ...], Path]:
+def built_agents(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[tuple[Path, ...], Path]:
     if importlib.util.find_spec("rclpy") is None:
         pytest.skip("ROS2 acceptance runs in the canonical Jazzy container")
     workspace = tmp_path_factory.mktemp("m4-ros")
@@ -82,7 +84,8 @@ def built_agents(tmp_path_factory: pytest.TempPathFactory) -> tuple[tuple[Path, 
             description="Protocol fixture",
             expose=(
                 Exposure(
-                    use=binding, alias="command" if binding == "test.command_server" else "task"
+                    use=binding,
+                    alias="command" if binding == "test.command_server" else "task",
                 ),
             ),
         )
@@ -94,7 +97,9 @@ def built_agents(tmp_path_factory: pytest.TempPathFactory) -> tuple[tuple[Path, 
 
 
 @pytest.mark.parametrize("mode", ["direct", "factories", "protocols"])
-def test_real_ros2_acceptance(built_agents: tuple[tuple[Path, ...], Path], mode: str) -> None:
+def test_real_ros2_acceptance(
+    built_agents: tuple[tuple[Path, ...], Path], mode: str
+) -> None:
     packages, setup = built_agents
     environment = dict(os.environ)
     environment["ROS_LOCALHOST_ONLY"] = "1"
@@ -124,7 +129,9 @@ def test_real_ros2_acceptance(built_agents: tuple[tuple[Path, ...], Path], mode:
 def test_application_import_boundary() -> None:
     source = (WORKSPACE / "tests/e2e/m4_application.py").read_text()
     tree = ast.parse(source)
-    imports = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
+    imports = {
+        node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+    }
     imports.update(
         alias.name
         for node in ast.walk(tree)

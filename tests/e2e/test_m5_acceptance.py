@@ -21,7 +21,9 @@ FIRMWARE = Path("/opt/px4/firmware")
 
 def test_m5_application_import_boundary() -> None:
     tree = ast.parse((WORKSPACE / "tests/e2e/m5_application.py").read_text())
-    imports = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
+    imports = {
+        node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+    }
     imports.update(
         alias.name
         for node in ast.walk(tree)
@@ -38,7 +40,9 @@ def test_m5_application_import_boundary() -> None:
     }
 
 
-@pytest.mark.skipif(os.environ.get("M5_SITL") != "1", reason="Requires pinned M5 SITL image")
+@pytest.mark.skipif(
+    os.environ.get("M5_SITL") != "1", reason="Requires pinned M5 SITL image"
+)
 @pytest.mark.parametrize("owner", ["binding", "application"])
 def test_px4_sitl_generated_application(tmp_path: Path, owner: str) -> None:
     binary = FIRMWARE / "build/px4_sitl_default/bin/px4"
@@ -69,7 +73,9 @@ def test_px4_sitl_generated_application(tmp_path: Path, owner: str) -> None:
         PX4_PARAM_NAV_DLL_ACT="0",
         PX4_PARAM_COM_DISARM_PRFLT="0",
     )
-    environment["PYTHONPATH"] = str(package.parent) + os.pathsep + environment.get("PYTHONPATH", "")
+    environment["PYTHONPATH"] = (
+        str(package.parent) + os.pathsep + environment.get("PYTHONPATH", "")
+    )
     processes: list[subprocess.Popen[bytes]] = []
     with (
         (tmp_path / "bridge.log").open("wb") as bridge_log,

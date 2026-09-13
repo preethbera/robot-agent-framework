@@ -90,7 +90,11 @@ def context(monkeypatch: pytest.MonkeyPatch) -> Any:
     senders: dict[str, Any] = {}
     return NS(
         binding_id="control",
-        configuration={"target_system": 1, "target_component": 1, "liveness_owner": "binding"},
+        configuration={
+            "target_system": 1,
+            "target_component": 1,
+            "liveness_owner": "binding",
+        },
         realization={"internal_communication": {"operation": "arm"}},
         services=NS(node=Node(), runtime=Shared(), group=None),
         register=lambda key, callback: senders.update({key: callback}),
@@ -118,7 +122,9 @@ def test_command_ack_is_separate_and_no_force_arm(context: Any) -> None:
     assert not node.entities
 
 
-def test_command_late_ack_and_bounded_lane(context: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_command_late_ack_and_bounded_lane(
+    context: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     component = runtime.create_command(context)
     component.start()
     operation: Any = Operation()
@@ -158,7 +164,10 @@ def test_offboard_warmup_setpoints_and_shutdown(
             assert not context.services.node.requests
     node = context.services.node
     assert len(node.requests) == 1
-    assert (node.requests[0].request.command, node.requests[0].request.param2) == (176, 6.0)
+    assert (node.requests[0].request.command, node.requests[0].request.param2) == (
+        176,
+        6.0,
+    )
     native = node.published[0]
     assert native.position == [1.0, 2.0, -3.0]
     assert all(v != v for v in native.velocity)
@@ -221,7 +230,9 @@ def test_late_first_pulse_still_requires_full_warmup(
     component.close()
 
 
-def test_late_pulse_cannot_hide_expiry(context: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_late_pulse_cannot_hide_expiry(
+    context: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     clock = [0.0]
     monkeypatch.setattr(offboard_runtime, "monotonic", lambda: clock[0])
     context.configuration["liveness_owner"] = "application"

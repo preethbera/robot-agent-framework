@@ -53,14 +53,17 @@ class Native:
         self.context = context
         self.node = context.services.node
         self.endpoints = {
-            item["id"].rsplit(".", 1)[-1]: item for item in context.realization["endpoints"]
+            item["id"].rsplit(".", 1)[-1]: item
+            for item in context.realization["endpoints"]
         }
 
     def entity(self, identifier: str) -> tuple[Any, str, Any]:
         endpoint = self.endpoints[identifier]
         package, kind, name = endpoint["interface_type"].split("/")
         interface = getattr(import_module(package + "." + kind), name)
-        native = endpoint_name(endpoint, self.context.instance_id, self.context.namespace)
+        native = endpoint_name(
+            endpoint, self.context.instance_id, self.context.namespace
+        )
         policies = import_module("rclpy.qos")
         qos = policies.QoSProfile(
             depth=endpoint["qos"]["depth"],
@@ -95,7 +98,10 @@ class CommandClient:
         self.context = native.context
         self.interface, name, qos = native.entity("command")
         self.client = native.node.create_client(
-            self.interface, name, qos_profile=qos, callback_group=self.context.services.group
+            self.interface,
+            name,
+            qos_profile=qos,
+            callback_group=self.context.services.group,
         )
         self.lane = lane_for(self.context.services.runtime, name)
         self.lock = RLock()
@@ -126,7 +132,9 @@ class CommandClient:
                 message.timestamp = self.native.timestamp()
                 message.command = command
                 message.target_system = self.context.configuration["target_system"]
-                message.target_component = self.context.configuration["target_component"]
+                message.target_component = self.context.configuration[
+                    "target_component"
+                ]
                 message.source_system = 245
                 message.source_component = 191
                 message.from_external = True
@@ -158,7 +166,9 @@ class CommandClient:
                         if reply.command != command:
                             raise ValueError("PX4 acknowledgement command mismatch")
                         status = _ACKS.get(reply.result, "unknown")
-                        self.lane.release(uncertain=status in ("in_progress", "unknown"))
+                        self.lane.release(
+                            uncertain=status in ("in_progress", "unknown")
+                        )
                     except Exception as error:
                         self.lane.release(uncertain=True)
                         operation.fail(AgentError(FailureCode.TRANSPORT, str(error)))

@@ -86,7 +86,7 @@ def definitions() -> tuple[BindingDefinition, ...]:
                         "channel": "value",
                         "endpoint": "status_topic",
                         "part": "message",
-                        "field": "level",
+                        "adapter": "agent_binding_lidar.properties:status_adapter",
                     }
                 ],
             },
@@ -132,6 +132,13 @@ def definitions() -> tuple[BindingDefinition, ...]:
             },
         ),
     )
+
+
+def status_adapter(msg: object) -> int:
+    level = getattr(msg, "level", b"\x00")
+    if isinstance(level, bytes):
+        return int(level[0]) if level else 0
+    return int(level)
 
 
 def performance_adapter(msg: object) -> object:

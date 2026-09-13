@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+
 from agent_framework.definition.loader import load_agent_definition
 from agent_framework.generation.python import GenerationError, generate_python
 from agent_framework.resolution.artifacts import write_artifacts

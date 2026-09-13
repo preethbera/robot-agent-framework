@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 import pytest
+
 from agent_framework.binding.definition import BindingSemantics
 from agent_framework.model import (
     Capability,

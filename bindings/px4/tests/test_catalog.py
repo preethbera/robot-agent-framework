@@ -50,7 +50,11 @@ def test_state_names() -> None:
 
 def test_orbit_encoding_and_limits() -> None:
     value = SimpleNamespace(
-        radius_m=10.0, speed_m_s=2.0, latitude_deg=47.0, longitude_deg=8.0, altitude_m=500.0
+        radius_m=10.0,
+        speed_m_s=2.0,
+        latitude_deg=47.0,
+        longitude_deg=8.0,
+        altitude_m=500.0,
     )
     assert orbit_parameters(value) == (10.0, 2.0, 0.0, 0.0, 47.0, 8.0, 500.0)
     value.radius_m = 0.0

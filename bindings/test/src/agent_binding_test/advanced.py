@@ -3,7 +3,11 @@
 from copy import deepcopy
 from dataclasses import replace
 
-from agent_framework.binding.definition import BindingDefinition, BindingSemantics, Primitive
+from agent_framework.binding.definition import (
+    BindingDefinition,
+    BindingSemantics,
+    Primitive,
+)
 from agent_framework.model import (
     Capability,
     Cardinality,
@@ -32,7 +36,9 @@ def protocol_bindings(command: BindingDefinition) -> tuple[BindingDefinition, ..
                 if incoming == server
                 else Direction.CONSUMER_TO_AGENT,
                 schema=schema,
-                cardinality=Cardinality.STREAM if part == "feedback" else Cardinality.SINGLE,
+                cardinality=Cardinality.STREAM
+                if part == "feedback"
+                else Cardinality.SINGLE,
                 lifetime=Lifetime.INVOCATION,
                 purpose=purpose,
             )
@@ -69,7 +75,12 @@ def protocol_bindings(command: BindingDefinition) -> tuple[BindingDefinition, ..
                         }
                     ],
                     "channel_mappings": [
-                        {"channel": "goal", "endpoint": "native", "part": "goal", "field": "order"},
+                        {
+                            "channel": "goal",
+                            "endpoint": "native",
+                            "part": "goal",
+                            "field": "order",
+                        },
                         {
                             "channel": "feedback",
                             "endpoint": "native",
