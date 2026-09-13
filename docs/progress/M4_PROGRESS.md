@@ -79,3 +79,23 @@ The four planned subtasks retain their scope; only dependency order changes.
 - Focused checks: 7 runtime tests passed, including bounded queues, blocked-reader
   shutdown, startup rollback, duplicate identities, and late-result isolation.
   Scoped Ruff and strict mypy passed.
+
+### Artifact-driven generator checkpoint — complete
+
+- Generator requires both finalized artifacts, validates their identity/hash,
+  versions, Channel coverage, and custom interface content, and writes an
+  importable typed package under the Agent build directory's `python/` tree.
+- Generated API: `Agent.temperature.get()`, writable Property `.set()` where
+  declared, `Agent.command.invoke(value)`, and scoped Capability `.start()`
+  handles with typed input `.send()` and output/feedback/result `.read()`.
+- Record payloads use generated dataclasses; scalar/sequence converters and
+  payload/range/allowed-value checks are static generated code. No schema
+  interpretation, reflection, or YAML parsing is added to message callbacks.
+- The original manifest supplies every endpoint, mapping, factory, and QoS.
+  Preconditions and mutual exclusion metadata remain declarative; no new
+  expression language or technology-specific safety behavior is invented.
+- Opaque payloads and outbound collections of records require an explicit binding
+  adapter because native element construction is binding-specific. Those cases
+  fail generation clearly if the necessary adapter is absent.
+- Focused verification: 14 generation/runtime tests passed. Scoped Ruff and
+  strict mypy passed, including strict mypy on the generated test Agent package.

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from importlib import import_module
 from threading import RLock
 from time import monotonic
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, Self, cast
 
 from .channel import Buffer, deadline
 from .errors import AgentError, FailureCode
@@ -173,7 +173,7 @@ class AgentRuntime:
         self.closed = False
         self._owns_runtime = runtime is None
         if runtime is None:
-            runtime = cast(SharedServices, import_module("agent_framework.ros2.runtime").Runtime())
+            runtime = create_runtime()
         self.runtime = runtime
         self.runtime.registry.add(instance_id, self)
         try:
@@ -249,6 +249,13 @@ class AgentRuntime:
             self.active[owner] = operation
             return operation
 
+    def write_property(self, channel: str, value: object) -> None:
+        operation = self.begin(self.channel_specs[channel].owner)
+        try:
+            operation.send(channel, value)
+        finally:
+            operation.close()
+
     def read_property(self, channel: str, timeout: float = 5.0) -> object:
         return self.properties[channel].read(timeout)
 
@@ -279,8 +286,13 @@ class AgentRuntime:
                 FailureCode.TRANSPORT, "Agent cleanup failed", target=self.instance_id
             ) from failures[0]
 
-    def __enter__(self) -> AgentRuntime:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
         self.close()
+
+
+def create_runtime() -> SharedServices:
+    """Create shared infrastructure without exposing ROS classes in the generated API."""
+    return cast(SharedServices, import_module("agent_framework.ros2.runtime").Runtime())
