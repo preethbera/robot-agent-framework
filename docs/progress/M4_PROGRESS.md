@@ -1,6 +1,6 @@
 # M4 Progress
 
-Status: **Blocked on prerequisite documentation access**.
+Status: **Blocked on the code-backed binding runtime factory contract**.
 Version remains **0.1.0**. M5 is out of scope.
 
 ## Planned subtasks
@@ -33,30 +33,50 @@ a stable checkpoint commit.
   a Property subscription, command service client, sensing subscription, and
   application-owned liveness publisher.
 
-## Exact blocker
+## Documentation checkpoint resolved
 
-The user permits design/architecture files only when explicitly referenced by
-`docs/milestones/M4_Python_API_and_Runtime.md`. That milestone currently contains
-no design/architecture references. The broader reading instruction in
-`docs/CODING_AGENT_PROMPT.md` is superseded by the user's narrower scope.
+- Initial inspection checkpoint: `539c08b`.
+- The user authorized `docs/design/Python API Runtime and Deployment.md` as the
+  M4 design authority; it has now been read.
+- Its artifact pipeline, application boundary, shared ROS2 infrastructure, and
+  instance registry requirements agree with the inspected M1–M3 implementation.
+- Section 3 explicitly allows generated Python syntax to evolve during
+  implementation. Choosing that syntax is therefore not a blocker.
 
-The permitted documents list features and acceptance outcomes but do not specify
-the public generated API, session lifecycle/concurrency contract, or optional
-binding runtime factory protocol. The corresponding implementation modules are
-stubs, so they cannot establish those contracts either.
+## Exact remaining blocker
 
-The existing `docs/design/Python API Runtime and Deployment.md` is the apparent
-prerequisite, but it has not been read because it is outside the explicit reading
-scope. Authorize that document (and identify any other intended prerequisites),
-or add the intended references to M4, before implementation resumes.
+M4 requires optional binding runtime factory support for code-backed bindings.
+The authorized design's section 4 requires code-backed runtime instances when
+needed, but does not define the factory/component protocol.
 
-This is a documentation-scope blocker, not an asserted architectural contradiction
-or a claim that the decisions are absent from the repository. No new architecture
-has been invented.
+Existing implementation evidence:
+
+- `binding/definition.py` defines `runtime_factory: str | None` and requires a
+  reference for `RuntimeMode.CODE_BACKED`; it defines no runtime protocol.
+- `ros2/builder.py` preserves the factory reference in the finalized manifest.
+- M3's factory test verifies reference preservation without importing or invoking
+  the factory, using `unimportable_binding:create`.
+- Generic and ROS2 runtime modules remain stubs.
+
+The necessary external binding contract still needs to establish:
+
+1. The factory's inputs and the resources/services made available to it.
+2. The returned component interface and how it exchanges logical Channel values
+   with the generic Agent runtime.
+3. Component initialization, startup, shutdown, and resource ownership, including
+   cleanup if creation/startup fails.
+
+These define an interoperability and lifecycle contract between independently
+installed bindings and the framework, rather than just generated Python syntax.
+Implementing a guessed protocol would invent a decision the user has reserved
+for review. Please provide this minimal factory/component contract before work
+resumes. No architectural contradiction has been found in the inspected areas.
 
 ## Checks and acceptance
 
-- M3 artifact integrity checks: **passed**.
+- M3 artifact integrity checks: **passed at the initial checkpoint**.
+- Authorized runtime design and existing binding/factory code reviewed.
+- No implementation changes; documentation diff check passed.
 - M4 implementation and focused runtime tests: **not started**.
 - M4 acceptance and full regressions: **not run; acceptance not yet passed**.
 - No version changes or M5 work.
