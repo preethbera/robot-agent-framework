@@ -1,7 +1,7 @@
 schema_version: '0.1.0'
 agent:
-  id: supervisor
-  description: M7 Supervisor Agent
+  id: sensor_drone
+  description: Drone equipped with LiDAR sensor
 expose:
   - {use: px4.landed, as: landed}
   - {use: px4.position, as: position}

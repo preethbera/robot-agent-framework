@@ -21,16 +21,17 @@ def deployment_artifacts(tmp_path_factory: pytest.TempPathFactory) -> Path:
         
     build_root = tmp_path_factory.mktemp("build")
     
-    # Build supervisor agent
-    agent_def = load_agent_definition(WORKSPACE / "agents" / "supervisor" / "agent.yaml")
-    supervisor_agent = resolve_agent(agent_def)
+    # Build sensor_drone agent
+    agent_def = load_agent_definition(WORKSPACE / "agents" / "sensor_drone" / "agent.yaml")
+    sensor_drone = resolve_agent(agent_def)
     
-    # 4. Resolution produces project/build/agents/<agent-id>/resolved_agent_model.json
-    write_artifacts(supervisor_agent, build_root)
-    # 5. ROS2 realization produces project/build/agents/<agent-id>/ros2_realization.json
-    write_realization(supervisor_agent, build_root)
+    # 5. M7 definition resolves without error
+    write_artifacts(sensor_drone, build_root)
+    
+    # 6. Realization processes existing endpoints without validation errors
+    write_realization(sensor_drone, build_root)
     # 6. Python API is generated only after ROS2 realization
-    generate_python(build_root / "build" / "agents" / supervisor_agent.agent.id)
+    generate_python(build_root / "build" / "agents" / sensor_drone.agent.id)
 
     import subprocess
     import sys
@@ -44,7 +45,7 @@ def deployment_artifacts(tmp_path_factory: pytest.TempPathFactory) -> Path:
             str(workspace / "log"),
             "build",
             "--base-paths",
-            str(build_root / "build" / "agents" / "supervisor" / "interfaces"),
+            str(build_root / "build" / "agents" / "sensor_drone" / "interfaces"),
             "--build-base",
             str(workspace / "compile"),
             "--install-base",
@@ -89,27 +90,27 @@ def main():
     perf_pub = node.create_publisher(Vector3, '/demo1/lidar/performance', 1)
     
     with Deployment(spec, workspace / "build" / "agents") as deployment:
-        supervisor1 = deployment.instances.get("supervisor_instance_1")
-        supervisor2 = deployment.instances.get("supervisor_instance_2")
+        drone1 = deployment.instances.get("drone_instance_1")
+        drone2 = deployment.instances.get("drone_instance_2")
         
         # 10. Multiple Agent instances can run without framework-core changes
-        assert supervisor1 is not None
-        assert supervisor2 is not None
+        assert drone1 is not None
+        assert drone2 is not None
         
-        assert supervisor1.namespace == "demo1"
-        assert supervisor2.namespace == "demo2"
+        assert drone1.namespace == "demo1"
+        assert drone2.namespace == "demo2"
         
         # 7. PX4 state/control works through the generated API
-        assert hasattr(supervisor1, 'arm')
-        assert hasattr(supervisor1, 'landed')
+        assert hasattr(drone1, 'arm')
+        assert hasattr(drone1, 'landed')
         
         # 8. Independent sensor Capability streams data through the same Agent API
-        assert hasattr(supervisor1, 'scan')
-        assert hasattr(supervisor1, 'lidar_status')
-        assert hasattr(supervisor1, 'lidar_performance')
+        assert hasattr(drone1, 'scan')
+        assert hasattr(drone1, 'lidar_status')
+        assert hasattr(drone1, 'lidar_performance')
         
         # 9. A Group mixes sensor Properties and Capabilities
-        assert "sensor_suite" in [g.id for g in supervisor1.spec.metadata.get("groups", [])]
+        assert "sensor_suite" in [g.id for g in drone1.spec.metadata.get("groups", [])]
 
         scan_msg = LaserScan()
         status_msg = DiagnosticStatus()
@@ -127,13 +128,13 @@ def main():
         time.sleep(0.5)
         
         # 11. Application source contains no direct ROS2 or PX4 APIs.
-        status_val = supervisor1.lidar_status.read(timeout=1.0)
+        status_val = drone1.lidar_status.read(timeout=1.0)
         assert status_val == 0
         
-        scan_val = supervisor1.scan.read(timeout=1.0)
+        scan_val = drone1.scan.read(timeout=1.0)
         assert hasattr(scan_val, 'ranges')
         
-        perf_val = supervisor1.lidar_performance.read(timeout=1.0)
+        perf_val = drone1.lidar_performance.read(timeout=1.0)
         assert hasattr(perf_val, 'latency')
         assert hasattr(perf_val, 'queue_depth')
         assert hasattr(perf_val, 'dropped_samples')
@@ -155,7 +156,7 @@ if __name__ == "__main__":
             sys.executable,
             str(worker_script),
             str(workspace),
-            str(WORKSPACE / "deployments" / "supervisor.yaml"),
+            str(WORKSPACE / "deployments" / "sensor_demo.yaml"),
         ],
         capture_output=True,
         text=True,
