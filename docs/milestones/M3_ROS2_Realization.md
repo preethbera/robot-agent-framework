@@ -32,3 +32,8 @@ Cover:
 ## Acceptance
 
 The framework can fully describe the ROS2 realization without generating the Python API yet.
+
+## Implementation references
+
+- [ROS2 design and approved v0.1.0 override contract](../design/ROS2%20Realization.md)
+- [M3 progress and acceptance record](../progress/M3_PROGRESS.md)

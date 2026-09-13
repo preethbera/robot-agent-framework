@@ -29,6 +29,8 @@ from agent_framework.model import (
     Timing,
 )
 
+from .ros2 import COMMAND, TEMPERATURE, stream_template
+
 NUMBER = PayloadSchema(kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT64)
 
 
@@ -116,7 +118,7 @@ def get_bindings() -> BindingPackage:
                     ),
                     channels=(value,),
                 ),
-                ros2_template={"existing": True, "name": "temperature"},
+                ros2_template=TEMPERATURE,
             ),
             BindingDefinition(
                 id="test.command",
@@ -132,6 +134,7 @@ def get_bindings() -> BindingPackage:
                     channels=(request, result),
                 ),
                 mandatory_requirements=BindingRequirements(constraints=(limit,)),
+                ros2_template=COMMAND,
             ),
             BindingDefinition(
                 id="test.stream",
@@ -154,6 +157,7 @@ def get_bindings() -> BindingPackage:
                 ),
                 configuration_defaults={"max_rate_hz": 10.0, "liveness_owner": "binding"},
                 configure=_stream,
+                configure_ros2=stream_template,
             ),
         ),
     )

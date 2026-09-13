@@ -81,3 +81,16 @@ build with resolution errors. The previous blocker is resolved.
   command service; existing endpoint types require no generated artifacts.
 - Focused verification: 76 ROS2 unit tests passed (21 new); scoped Ruff and strict
   mypy passed across framework sources and ROS2 tests.
+
+### Subtask 4 — complete
+
+- Extended the installed external M2 test binding with native Float64 topics,
+  a float64 command service, and configuration-dependent sensing/liveness
+  endpoints. The numeric service is the only required custom interface.
+- Added 14 integration acceptance cases covering direct Property mapping,
+  service request/response, sensing and multi-endpoint realization, valid and
+  rejected Agent overrides, repeated binding instances, metadata preservation,
+  existing-interface-only builds, and byte-identical fresh-process output.
+- Focused verification: 109 tests passed across ROS2 unit tests, binding tests,
+  M3 acceptance, and M2 resolution regressions. Repository-wide Ruff and strict
+  mypy passed.
