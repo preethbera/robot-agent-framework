@@ -8,6 +8,8 @@ from threading import Event, Thread
 
 from agent_px4_agent import (  # type: ignore[import-not-found]
     Agent,
+    AgentError,
+    FailureCode,
     Payload_arm_request,
     Payload_offboard_setpoint,
     Payload_orbit_request,
@@ -22,8 +24,9 @@ def until(condition: Callable[[], bool], timeout: float = 20.0) -> None:
 
 
 @contextmanager
-def liveness(send: Callable[[], None], enabled: bool) -> Iterator[None]:
+def liveness(send: Callable[[], None], enabled: bool) -> Iterator[Callable[[], None]]:
     stopping = Event()
+    exiting = Event()
     failures: list[Exception] = []
 
     def run_pulses() -> None:
@@ -31,6 +34,15 @@ def liveness(send: Callable[[], None], enabled: bool) -> Iterator[None]:
             try:
                 send()
             except Exception as error:
+                # An observed mode exit may end the component before this
+                # worker stops. Only accept that race after an explicit exit
+                # request; the main thread still verifies the requested mode.
+                if (
+                    exiting.is_set()
+                    and isinstance(error, AgentError)
+                    and error.code in (FailureCode.CLOSED, FailureCode.NOT_READY)
+                ):
+                    return
                 failures.append(error)
                 return
             stopping.wait(0.1)
@@ -39,7 +51,7 @@ def liveness(send: Callable[[], None], enabled: bool) -> Iterator[None]:
     if enabled:
         worker.start()
     try:
-        yield
+        yield exiting.set
     finally:
         stopping.set()
         if enabled:
@@ -58,7 +70,9 @@ def run(application_owned: bool = False) -> None:
         time.sleep(5)
         with agent.offboard.start() as session:
             session.setpoint.send(Payload_offboard_setpoint(x=0.0, y=0.0, z=-3.0, yaw=0.0))
-            with liveness(lambda: session.liveness.send(Payload_arm_request()), application_owned):
+            with liveness(
+                lambda: session.liveness.send(Payload_arm_request()), application_owned
+            ) as begin_exit:
                 assert session.ack.read(timeout=10) == "accepted"
                 until(lambda: agent.flight_mode.get() == "offboard")
                 with agent.arm.start() as call:
@@ -66,6 +80,7 @@ def run(application_owned: bool = False) -> None:
                     assert call.ack.read() == "accepted"
                 until(lambda: agent.armed.get() == "armed")
                 until(lambda: agent.position.get().z < -2.0, timeout=30)
+                begin_exit()
                 with agent.hold.start() as call:
                     call.request.send(Payload_arm_request())
                     assert call.ack.read() == "accepted"

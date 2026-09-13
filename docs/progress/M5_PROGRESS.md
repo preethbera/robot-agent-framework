@@ -1,6 +1,6 @@
 # M5 Progress
 
-Status: **In progress — compatibility decision resolved**.
+Status: **Complete**.
 Project, framework, and binding version remain **0.1.0**. M6 is out of scope.
 
 ## Inspection
@@ -73,7 +73,7 @@ checkpoint commit.
 - Initial working tree: clean.
 - Documentation diff check: passed.
 - Catalog tests passed; runtime and SITL acceptance remain pending.
-- M5 acceptance: **not passed; pending runtime implementation and SITL checks**.
+- M5 acceptance: **passed; 320 tests, Ruff, and strict mypy clean**.
 
 ## Runtime checkpoint
 
@@ -125,4 +125,20 @@ checkpoint commit.
 - Focused real acceptance: **3 passed in 62.47 seconds**, covering import isolation
   and complete flights with both binding-owned and application-owned liveness.
 - Ten binding unit/pipeline checks passed; scoped Ruff and strict mypy passed.
-- Full canonical M5 acceptance plus regressions: pending final check.
+- Full canonical M5 acceptance plus regressions: **passed**.
+
+## Final acceptance
+
+- SITL checkpoint: `fba513f`.
+- The full M5 validation run exposed a race in the acceptance application: a
+  liveness pulse could fire after Hold ended the Offboard session. The
+  application's heartbeat worker now receives an explicit exit signal before the
+  Hold command, and only tolerates `CLOSED`/`NOT_READY` errors after that signal.
+  The binding runtime is unchanged; no framework modifications were required.
+- Full canonical check in the pinned optional image: **320 passed in ~80 seconds**,
+  covering framework unit tests, M1–M4 regressions, M5 SITL acceptance (import
+  isolation plus both binding-owned and application-owned liveness flights),
+  integration tests, and binding unit/pipeline checks.
+- Ruff lint, Ruff format, and strict mypy: all clean across 96 source files.
+- Generated API typing: clean (strict mypy, 1 source file).
+- M5 acceptance: **passed**.
