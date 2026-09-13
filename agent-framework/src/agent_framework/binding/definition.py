@@ -62,6 +62,7 @@ class BindingDefinition:
     configuration_defaults: Mapping[str, object] = field(default_factory=dict)
     dependencies: tuple[str, ...] = ()
     ros2_template: Mapping[str, object] = field(default_factory=dict)
+    configure_ros2: Callable[[Mapping[str, object]], Mapping[str, object]] | None = None
     runtime_mode: RuntimeMode = RuntimeMode.DIRECT
     runtime_factory: str | None = None
     configure: Callable[[Mapping[str, object]], BindingSemantics] | None = None

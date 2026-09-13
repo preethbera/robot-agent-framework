@@ -66,3 +66,18 @@ build with resolution errors. The previous blocker is resolved.
 - Focused verification: all 55 ROS2 unit tests passed (28 new); scoped Ruff and
   strict mypy passed. Unknown global override targets will be checked by the
   manifest builder in subtask 3.
+
+### Subtask 3 — complete
+
+- Implemented deterministic manifests with model hash, binding lock and runtime
+  metadata, endpoint templates, Channel mappings/adapters, interface types, and
+  explicit custom interface artifacts.
+- Writer verifies persisted M2 inputs, preflights output paths, uses atomic file
+  replacement, and publishes the manifest last. Unknown override targets fail
+  before output is written.
+- Added a binding-owned configuration hook for ROS2 descriptions, invoked only
+  at realization time. No runtime code executes and resolved semantics stay intact.
+- Added explicit scalar interface generation for the test-required float64
+  command service; existing endpoint types require no generated artifacts.
+- Focused verification: 76 ROS2 unit tests passed (21 new); scoped Ruff and strict
+  mypy passed across framework sources and ROS2 tests.
