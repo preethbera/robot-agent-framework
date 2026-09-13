@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools==79.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-binding-test"
+version = "0.1.0"
+description = "Independent test binding for framework integration tests"
+requires-python = ">=3.12"
+dependencies = ["agent-framework==0.1.0"]
+
+[project.entry-points."agent_framework.bindings"]
+test = "agent_binding_test:get_bindings"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_binding_test = ["py.typed"]

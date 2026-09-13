@@ -25,7 +25,9 @@ RUN python -m pip install --require-hashes -r /opt/requirements-dev.txt
 
 WORKDIR /workspace/project
 COPY agent-framework/ agent-framework/
+COPY bindings/test/ bindings/test/
 RUN python -m pip install --no-build-isolation --no-deps -e ./agent-framework \
+    && python -m pip install --no-build-isolation --no-deps -e ./bindings/test \
     && python -m pip check
 
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/project-entrypoint
@@ -39,4 +41,3 @@ USER ${DEV_UID}:${DEV_GID}
 
 ENTRYPOINT ["/usr/local/bin/project-entrypoint"]
 CMD ["bash"]
-

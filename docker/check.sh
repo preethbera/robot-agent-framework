@@ -19,7 +19,7 @@ for directory in ("agent-framework", "bindings", "agents", "deployments", "build
 assert Path("docs/milestones/M0_Bootstrap.md").is_file()
 PY
 
-python -m pytest -c agent-framework/pyproject.toml agent-framework/tests tests
+python -m pytest -c agent-framework/pyproject.toml agent-framework/tests bindings/test/tests tests
 python -m ruff check --config agent-framework/pyproject.toml .
 python -m ruff format --check --config agent-framework/pyproject.toml .
-python -m mypy --config-file agent-framework/pyproject.toml agent-framework/src/agent_framework agent-framework/tests
+python -m mypy --config-file agent-framework/pyproject.toml agent-framework/src/agent_framework agent-framework/tests bindings/test/src bindings/test/tests tests

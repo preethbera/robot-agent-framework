@@ -9,7 +9,11 @@
 !agent-framework/README.md
 !agent-framework/src/
 !agent-framework/src/**
+!bindings/
+!bindings/test/
+!bindings/test/pyproject.toml
+!bindings/test/src/
+!bindings/test/src/**
 **/__pycache__/
 **/*.py[cod]
 **/*.egg-info/
-
