@@ -10,6 +10,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
+[project.optional-dependencies]
+build = ["ruamel.yaml==0.18.16"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false

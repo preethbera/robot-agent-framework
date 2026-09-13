@@ -1,4 +1,5 @@
-"""Agent Definition errors.
+"""Agent Definition parsing and structural errors."""
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
-"""
+
+class DefinitionError(ValueError):
+    """Invalid declarative Agent Definition; no runtime work has begun."""

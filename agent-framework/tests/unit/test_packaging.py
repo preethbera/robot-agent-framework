@@ -11,6 +11,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
+from packaging.requirements import Requirement
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
@@ -69,7 +70,12 @@ def test_installed_metadata() -> None:
         metadata = tomllib.load(stream)["project"]
     installed = distribution("agent-framework")
     assert installed.version == metadata["version"] == "0.1.0"
-    assert not installed.requires
+    assert not [
+        requirement
+        for item in installed.requires or ()
+        if (requirement := Requirement(item)).marker is None
+        or requirement.marker.evaluate({"extra": ""})
+    ]
 
 
 def test_checkout_requires_installation(tmp_path: Path) -> None:
