@@ -1,4 +1,9 @@
-"""Resolution errors.
+"""Explicit failures before ROS2 realization or runtime startup."""
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
-"""
+
+class ResolutionError(ValueError):
+    """The requested semantics cannot be resolved consistently."""
+
+
+class MandatoryRequirementError(ResolutionError):
+    """An Agent/configuration attempts to weaken a binding requirement."""

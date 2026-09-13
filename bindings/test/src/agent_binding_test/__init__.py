@@ -4,7 +4,12 @@ from collections.abc import Mapping
 from dataclasses import replace
 
 from agent_framework.binding.api import BindingPackage
-from agent_framework.binding.definition import BindingDefinition, BindingSemantics, Primitive
+from agent_framework.binding.definition import (
+    BindingDefinition,
+    BindingRequirements,
+    BindingSemantics,
+    Primitive,
+)
 from agent_framework.model import (
     Capability,
     Cardinality,
@@ -126,13 +131,16 @@ def get_bindings() -> BindingPackage:
                     ),
                     channels=(request, result),
                 ),
-                mandatory_requirements=(limit,),
+                mandatory_requirements=BindingRequirements(constraints=(limit,)),
             ),
             BindingDefinition(
                 id="test.stream",
                 description="Continuous sensing",
                 primitive=Primitive.CAPABILITY,
                 default_semantics=_stream({"max_rate_hz": 10.0, "liveness_owner": "binding"}),
+                mandatory_requirements=BindingRequirements(
+                    channels=_stream({"max_rate_hz": 10.0, "liveness_owner": "binding"}).channels
+                ),
                 configuration_schema=PayloadSchema(
                     kind=SchemaKind.RECORD,
                     fields={

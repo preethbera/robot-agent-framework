@@ -1,6 +1,7 @@
 """Typed binding declarations, with technology descriptions kept outside semantics."""
 
 from collections.abc import Callable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -13,8 +14,10 @@ from agent_framework.model import (
     Property,
     SchemaKind,
     validate_agent,
+    validate_channel,
     validate_constant,
     validate_constraint,
+    validate_schema,
 )
 
 from .errors import BindingError
@@ -39,12 +42,20 @@ class BindingSemantics:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class BindingRequirements:
+    """Mandatory constraints and Channels, distinct from configurable defaults."""
+
+    constraints: tuple[Constraint, ...] = ()
+    channels: tuple[Channel, ...] = ()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class BindingDefinition:
     id: str
     description: str
     primitive: Primitive
     default_semantics: BindingSemantics
-    mandatory_requirements: tuple[Constraint, ...] = ()
+    mandatory_requirements: BindingRequirements = field(default_factory=BindingRequirements)
     configuration_schema: PayloadSchema = field(
         default_factory=lambda: PayloadSchema(kind=SchemaKind.RECORD)
     )
@@ -92,7 +103,10 @@ def validate_binding(definition: BindingDefinition) -> None:
     if definition.configuration_schema.kind is not SchemaKind.RECORD:
         raise BindingError("binding configuration must be a record")
     validate_semantics(definition.default_semantics)
-    for constraint in definition.mandatory_requirements:
+    validate_schema(definition.configuration_schema)
+    for channel in definition.mandatory_requirements.channels:
+        validate_channel(channel)
+    for constraint in definition.mandatory_requirements.constraints:
         validate_constraint(constraint)
     if len(set(definition.dependencies)) != len(definition.dependencies):
         raise BindingError("duplicate binding dependency")
@@ -106,7 +120,7 @@ def configure_binding(
     Mandatory requirements are checked by the resolver against both the baseline
     and the configured semantics; a hook cannot authorize weakening them.
     """
-    values = {**definition.configuration_defaults, **configuration}
+    values = deepcopy({**definition.configuration_defaults, **configuration})
     try:
         validate_constant(definition.configuration_schema, values)
         if definition.configure is None:
