@@ -131,8 +131,9 @@ def main():
         status_val = drone1.lidar_status.read(timeout=1.0)
         assert status_val == 0
         
-        scan_val = drone1.scan.read(timeout=1.0)
-        assert hasattr(scan_val, 'ranges')
+        with drone1.scan.start(timeout=1.0) as call:
+            scan_val = call.scan.read(timeout=1.0)
+            assert hasattr(scan_val, 'ranges')
         
         perf_val = drone1.lidar_performance.read(timeout=1.0)
         assert hasattr(perf_val, 'latency')
