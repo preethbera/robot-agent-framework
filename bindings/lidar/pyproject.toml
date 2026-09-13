@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools==79.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-binding-lidar"
+version = "0.1.0"
+description = "Lidar integration for the Agent framework"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["agent-framework==0.1.0"]
+
+[project.entry-points."agent_framework.bindings"]
+lidar = "agent_binding_lidar:get_bindings"
+
+[tool.setuptools.packages.find]
+where = ["src"]

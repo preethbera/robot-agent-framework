@@ -1,0 +1,21 @@
+schema_version: '0.1.0'
+agent:
+  id: supervisor
+  description: M7 Supervisor Agent
+expose:
+  - {use: px4.landed, as: landed}
+  - {use: px4.position, as: position}
+  - {use: px4.velocity, as: velocity}
+  - {use: px4.armed, as: armed}
+  - {use: px4.flight_mode, as: flight_mode}
+  - {use: px4.arm, as: arm}
+  - {use: px4.disarm, as: disarm}
+  - {use: px4.land, as: land}
+  - {use: px4.orbit, as: orbit}
+  - {use: lidar.status, as: lidar_status}
+  - {use: lidar.performance, as: lidar_performance}
+  - {use: lidar.scan, as: scan}
+groups:
+  - id: sensor_suite
+    description: Mixed sensor group
+    members: [lidar_status, lidar_performance, scan]

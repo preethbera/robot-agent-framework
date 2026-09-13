@@ -1,0 +1,10 @@
+schema_version: "0.1.0"
+instances:
+  - id: supervisor_instance_1
+    agent: supervisor
+    config:
+      ros_namespace: "demo1"
+  - id: supervisor_instance_2
+    agent: supervisor
+    config:
+      ros_namespace: "demo2"
