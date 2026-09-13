@@ -5,8 +5,9 @@ This independently installable distribution exposes `agent_framework` using a
 Read the installed version with `importlib.metadata.version("agent-framework")`.
 There are no runtime dependencies at M0.
 
-M1 implements the technology-independent model in `model/`; other modules retain
-their documented boundaries for later milestones. Bindings remain independent distributions in the peer
+M1 implements the technology-independent model in `model/`. M2 implements
+`binding/`, `definition/`, `resolution/`, and `serialization/`; other modules retain
+their boundaries for later milestones. Bindings remain independent distributions in the peer
 `bindings/` directory and will be discovered through installed entry points.
 
 Use the development container and commands in the [workspace README](../README.md).
@@ -48,3 +49,34 @@ Semantic metadata (including units and frames) remains technology-independent.
 Mappings and payload values remain caller-owned: frozen dataclasses do not deep
 freeze those containers. Finish assembling them before validation and revalidate
 after any edits. Opaque payloads are neither inspected nor copied by the model.
+
+## Binding and resolution (M2)
+
+Binding API `0.1.0` providers register in `agent_framework.bindings`. The entry-point
+name supplies the namespace (`test` for `test.temperature`), and its zero-argument
+callable returns `BindingPackage` with explicitly supported API versions. Duplicate
+providers and missing/incompatible referenced definitions fail before runtime.
+Dependencies are checked transitively; they do not implicitly expose functionality.
+
+`BindingRequirements` separates mandatory Constraints/Channels from defaults that
+configuration may change. Constraint range limits use `min`/`max`; allowed values
+use `values`. Added compatible constraints narrow existing limits; mandatory
+limits cannot be weakened and empty intersections fail. Preconditions and mutual
+exclusions remain declarative data without an expression evaluator.
+
+Resolved Channel/Constraint IDs use `exposed_alias.local_id`. Constraint string
+targets identify model elements; an optional `parameters.field` names a literal
+record field. Payload limits on a Capability require one unambiguous relevant
+Channel, or an explicit Channel target. These Python representations preserve the
+authoritative Agent Definition keys and do not introduce a new schema version.
+
+Artifacts are UTF-8 JSON with sorted object keys and a trailing newline. Entity
+lists are sorted by ID; byte constants are base64 in their schema-typed value slot.
+The lock records the raw Agent Definition SHA-256 and installed distribution/API
+versions. Technology templates, runtime factories, and ROS2 overrides are kept in
+the in-memory `Resolution`, separate from serialized Agent semantics. Binding-owned
+responsibilities are hidden; application-owned responsibilities are Agent metadata.
+
+For local build tools install `python -m pip install --no-build-isolation -e '.[build]'`.
+The canonical Docker image locks all build dependencies with hashes. Run the full
+workspace checks in the root README to include the independent binding and system tests.

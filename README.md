@@ -10,7 +10,8 @@ Do not open only `agent-framework/` as if it were the complete system. The frame
 
 M0 supplies packaging, the documented framework module skeleton, Docker, and
 development checks. M1 implements the technology-independent core model and
-explicit build-time validation; later pipeline stages remain unimplemented.
+explicit build-time validation. M2 adds installed bindings, safe Agent Definition
+loading, resolution, and deterministic artifacts. ROS2 realization starts in M3.
 The authoritative plan starts at [docs/README.md](docs/README.md).
 
 | Directory | Purpose |
@@ -62,7 +63,7 @@ There is one workspace bind mount. No host ROS2, PX4, Gazebo, Python environment
 or Docker socket is mounted, and no host ROS environment variables are forwarded.
 PX4 and Gazebo are deferred until a milestone requires them.
 
-## Validate M0 and M1
+## Validate M0–M2
 
 Run model tests, packaging regressions, and static checks in a fresh development container:
 
@@ -78,10 +79,10 @@ and imports in a fresh environment without ROS or other runtime dependencies.
 The individual commands, run inside the container from `/workspace/project`, are:
 
 ```bash
-python -m pytest -c agent-framework/pyproject.toml agent-framework/tests tests
+python -m pytest -c agent-framework/pyproject.toml agent-framework/tests bindings/test/tests tests
 python -m ruff check --config agent-framework/pyproject.toml .
 python -m ruff format --check --config agent-framework/pyproject.toml .
-python -m mypy --config-file agent-framework/pyproject.toml agent-framework/src/agent_framework agent-framework/tests
+python -m mypy --config-file agent-framework/pyproject.toml agent-framework/src/agent_framework agent-framework/tests bindings/test/src bindings/test/tests tests
 ```
 
 M1 tests cover mixed/nested Groups and cycle rejection, multi-Channel Capabilities,
@@ -104,3 +105,33 @@ development dependencies does not change the project's `0.1.0` version.
 No `PYTHONPATH` source injection is needed or supported as an installation method.
 Docker remains the acceptance environment even if checks also pass on a local
 Python installation.
+
+## Resolve the M2 example
+
+Inside the development container, from `/workspace/project`:
+
+```bash
+python - <<'PYTHON'
+from pathlib import Path
+from agent_framework.definition.loader import load_agent_definition
+from agent_framework.resolution.resolver import resolve_agent
+from agent_framework.resolution.artifacts import write_artifacts
+
+result = resolve_agent(load_agent_definition(Path("agents/test_agent/agent.yaml")))
+for path in write_artifacts(result, Path.cwd()):
+    print(path)
+PYTHON
+```
+
+This writes only `resolved_agent_model.json` and `binding_lock.json` beneath
+`build/agents/test_agent/`. The test binding is installed independently in the
+image. Discovery uses package entry points, including for local editable installs.
+M2 retains ROS2 overrides/templates for the next stage without materializing ROS2.
+
+Outside Docker, install `agent-framework[build]` to enable YAML loading; core
+model imports and installed binding discovery do not require the YAML dependency.
+The loader accepts one YAML 1.2 document with the documented keys, rejects duplicate
+keys and executable tags, and limits input to 1 MiB, nesting to 64 levels, and
+expanded data to 100,000 nodes. See the [safe-loader API](https://yaml.dev/doc/ruamel.yaml/api/).
+
+M2 checkpoint/resume status is in [docs/progress/M2_PROGRESS.md](docs/progress/M2_PROGRESS.md).
