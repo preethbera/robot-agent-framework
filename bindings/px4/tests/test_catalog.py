@@ -16,7 +16,7 @@ from agent_framework.ros2 import write_realization
 
 def test_catalog_and_generated_pipeline(tmp_path: Path) -> None:
     package = get_bindings()
-    assert len(package.definitions) == 10
+    assert len(package.definitions) == 11
     for definition in package.definitions:
         validate_binding(definition)
     model = AgentDefinition(
@@ -40,12 +40,12 @@ def test_catalog_and_generated_pipeline(tmp_path: Path) -> None:
 
 
 def test_state_names() -> None:
-    assert armed_state("1") == "disarmed"
-    assert armed_state("2") == "armed"
-    assert armed_state("99") == "unknown"
-    assert flight_mode("14") == "offboard"
-    assert flight_mode("21") == "orbit"
-    assert flight_mode("99") == "unknown"
+    assert armed_state(1) == "disarmed"
+    assert armed_state(2) == "armed"
+    assert armed_state(99) == "unknown"
+    assert flight_mode(14) == "offboard"
+    assert flight_mode(21) == "orbit"
+    assert flight_mode(99) == "unknown"
 
 
 def test_orbit_encoding_and_limits() -> None:

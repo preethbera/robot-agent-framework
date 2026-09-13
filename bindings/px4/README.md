@@ -77,3 +77,20 @@ Protocol sources:
 [ROS2 service](https://docs.px4.io/v1.16/en/ros2/user_guide#px4-ros-2-service-servers),
 [Offboard](https://docs.px4.io/v1.16/en/flight_modes/offboard),
 [SIH SITL](https://docs.px4.io/v1.16/en/sim_sih/index).
+
+The `landed` Property exposes PX4's observed ground-contact state for sequencing
+ordinary disarm after landing; altitude alone is not a landed-state test. The
+position session refreshes its one cached target alongside proof of life, so its
+timestamp remains valid when PX4 activates position control after mode entry or
+arming. This follows the pinned controller's activation timestamp check.
+
+Run the full M5 checks in the optional image with the workspace mounted:
+
+```sh
+docker run --rm --mount type=bind,source="$PWD",target=/workspace/project \
+  agent-framework-px4:0.1.0 bash docker/check-px4.sh
+```
+
+The test environment disables RC input and data-link-loss action only in its
+isolated SIH process. The binding itself does not change these parameters. Tests
+exercise actual firmware with both liveness ownership configurations.

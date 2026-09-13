@@ -115,6 +115,11 @@ class PositionComponent:
         self.last_heartbeat = now
         message.timestamp = self.native.timestamp()
         message.position = True
+        # PX4 requires a setpoint newer than position-control activation. Keep
+        # the one cached target current across mode entry and explicit arming.
+        if self.setpoint is not None:
+            self.setpoint.timestamp = message.timestamp
+            self.publisher.publish(self.setpoint)
         self.heartbeat.publish(message)
 
     def pulse(self, value: object, operation: Operation) -> None:

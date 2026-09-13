@@ -9,10 +9,11 @@ from agent_framework.model import (
     PayloadSchema,
     Property,
     Purpose,
+    ScalarType,
     SchemaKind,
 )
 
-from .catalog import NUMBER, STRING, VECTOR, endpoint, mapping
+from .catalog import NUMBER, STRING, VECTOR, endpoint, mapping, scalar
 
 
 def definitions() -> tuple[BindingDefinition, ...]:
@@ -24,6 +25,14 @@ def definitions() -> tuple[BindingDefinition, ...]:
     return tuple(
         _property(*item)
         for item in (
+            (
+                "landed",
+                scalar(ScalarType.BOOL),
+                "VehicleLandDetected",
+                "out/vehicle_land_detected",
+                "landed",
+                None,
+            ),
             ("position", VECTOR, "VehicleLocalPosition", "out/vehicle_local_position", None, None),
             (
                 "velocity",
@@ -86,8 +95,8 @@ def _property(
     )
 
 
-def armed_state(value: str) -> str:
-    return {"1": "disarmed", "2": "armed"}.get(value, "unknown")
+def armed_state(value: int) -> str:
+    return {1: "disarmed", 2: "armed"}.get(value, "unknown")
 
 
 _MODES = {
@@ -112,7 +121,7 @@ _MODES = {
 }
 
 
-def flight_mode(value: str) -> str:
+def flight_mode(value: int) -> str:
     number = int(value)
     if 23 <= number <= 30:
         return f"external_{number - 22}"

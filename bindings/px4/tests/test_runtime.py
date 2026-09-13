@@ -187,7 +187,7 @@ def test_application_liveness_is_not_generated(
     component.tick()
     assert len(context.services.node.published) == 1  # setpoint only
     component.pulse(NS(), operation)
-    assert len(context.services.node.published) == 2
+    assert len(context.services.node.published) == 3  # refreshed target + heartbeat
     clock[0] = 0.41
     component.tick()
     assert operation.failures[0].code == FailureCode.TIMEOUT

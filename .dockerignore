@@ -4,6 +4,9 @@
 !docker/entrypoint.sh
 !docker/requirements-dev.txt
 !docker/ubuntu.sources
+!docker/Dockerfile.px4
+!docker/px4-versions.env
+!docker/px4-entrypoint.sh
 !agent-framework/
 !agent-framework/pyproject.toml
 !agent-framework/README.md
@@ -14,6 +17,11 @@
 !bindings/test/pyproject.toml
 !bindings/test/src/
 !bindings/test/src/**
+!bindings/px4/
+!bindings/px4/pyproject.toml
+!bindings/px4/README.md
+!bindings/px4/src/
+!bindings/px4/src/**
 **/__pycache__/
 **/*.py[cod]
 **/*.egg-info/

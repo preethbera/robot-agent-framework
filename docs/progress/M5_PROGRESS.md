@@ -107,3 +107,22 @@ checkpoint commit.
   firmware build exposed an upstream shallow NuttX tag-parsing failure unrelated
   to SITL. The optional environment now fetches only SITL-required submodules and
   caches acquisition separately from compilation; upstream sources are unchanged.
+
+## Real SITL integration checkpoint
+
+- Edge-case checkpoint: `1178e52`.
+- Optional image built successfully with exact firmware/interface/bridge pins;
+  no external dependency sources were added under the project tree.
+- SITL revealed two integration details, now fixed: direct state adapters receive
+  native integer enum fields, and PX4 requires trajectory timestamps newer than
+  position-control activation. The position component refreshes its bounded
+  cached target alongside each proof-of-life publication.
+- Added a direct `px4.landed` Property so the application observes actual ground
+  state before ordinary disarm. This required only another modular Property
+  declaration, with no framework changes. Catalog now has eleven definitions.
+- The generated-only application exercised all state Properties, explicit arm,
+  Offboard ascent, hold, orbit, land, and disarm against real pinned SIH SITL.
+- Focused real acceptance: **3 passed in 62.47 seconds**, covering import isolation
+  and complete flights with both binding-owned and application-owned liveness.
+- Ten binding unit/pipeline checks passed; scoped Ruff and strict mypy passed.
+- Full canonical M5 acceptance plus regressions: pending final check.
