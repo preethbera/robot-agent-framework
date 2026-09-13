@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools==79.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-binding-px4"
+version = "0.1.0"
+description = "Modular PX4 integration for the Agent framework"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["agent-framework==0.1.0"]
+
+[project.entry-points."agent_framework.bindings"]
+px4 = "agent_binding_px4:get_bindings"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_binding_px4 = ["py.typed"]

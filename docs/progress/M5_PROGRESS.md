@@ -1,6 +1,6 @@
 # M5 Progress
 
-Status: **Blocked at dependency compatibility target; implementation not started**.
+Status: **In progress — compatibility decision resolved**.
 Project, framework, and binding version remain **0.1.0**. M6 is out of scope.
 
 ## Inspection
@@ -19,16 +19,34 @@ Project, framework, and binding version remain **0.1.0**. M6 is out of scope.
   `px4_msgs` revision. The milestone nevertheless requires implementation
   against the pinned PX4/ROS2 versions.
 
-## Required decision
+## Compatibility decision — resolved
 
-Specify the supported PX4 firmware release/revision and matching `px4_msgs`
-revision (or authorize selection of a compatible pinned pair). This establishes
-the external message and flight-control compatibility target before verifying
-commands, acknowledgements, mode transitions, and Offboard sequencing against
-official version-specific sources. Host installations are not an authoritative
-substitute for the canonical environment.
+The user authorized selecting the pair. Selected stable **v1.16.2**:
 
-No dependency source has been downloaded, copied, or vendored into the project.
+- PX4 firmware: `54f0455ffcd755534539a7cf33a09a20bf71d29d`.
+- `px4_msgs`: `392e831c1f659429ca83902e66820d7094591410`.
+- Micro XRCE-DDS Agent v2.4.3: `73622810d984349b80bbac0ef55fc0b694d62222`.
+
+The [firmware release](https://github.com/PX4/PX4-Autopilot/releases/tag/v1.16.2)
+is designated stable; the [interface release](https://github.com/PX4/px4_msgs/releases/tag/v1.16.2)
+explicitly matches it. The pinned firmware's Ubuntu setup supports 24.04.
+Build matching interfaces with Jazzy in an external colcon environment; no
+translation middleware or dependency source is added under the project tree.
+Exact revisions are recorded in `docker/px4-versions.env`. This follows the
+[version-matching rule](https://docs.px4.io/v1.16/en/ros2/user_guide).
+
+## Package/catalog checkpoint
+
+- Independent installable distribution with normal entry-point discovery and no
+  ROS/PX4 imports during discovery, resolution, or generation.
+- Extensible command descriptors and separate direct Property definitions;
+  nine definitions cover four state Properties and five discrete operations.
+- Use native VehicleCommand service request/reply correlation, not a replacement
+  request/ack protocol. Acknowledgement is exposed separately from state.
+- Position/velocity are local NED (metres/metres per second); named armed state
+  and flight mode avoid exposing PX4 enum numbers to applications.
+- Three focused catalog/conversion/pipeline tests passed; Ruff and strict mypy
+  passed. Optional environment build and runtime implementation are ongoing.
 
 ## Planned subtasks
 
@@ -54,5 +72,5 @@ checkpoint commit.
 
 - Initial working tree: clean.
 - Documentation diff check: passed.
-- No implementation tests or SITL acceptance run in M5 yet.
-- M5 acceptance: **not passed; pending implementation and compatibility target**.
+- Catalog tests passed; runtime and SITL acceptance remain pending.
+- M5 acceptance: **not passed; pending runtime implementation and SITL checks**.
