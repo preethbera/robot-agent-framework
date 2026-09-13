@@ -1,6 +1,6 @@
 # M3 Progress
 
-Status: **In progress**.
+Status: **Complete — stopped after M3**.
 Version remains **0.1.0**. M4 and later milestones are out of scope.
 
 ## Implementation subtasks
@@ -24,7 +24,7 @@ a commit when stable.
 5. **Final verification** — full M3 acceptance plus existing regressions and
    repository checks; confirm version `0.1.0` and stop after M3.
 
-## Review findings
+## Initial checkpoint findings
 
 - M3 requires allowed Agent Definition ROS2 overrides and binding-owned mappings.
 - `docs/design/ROS2 Realization.md`, sections 3 and 7, assigns mapping ownership
@@ -44,8 +44,8 @@ build with resolution errors. The previous blocker is resolved.
 ## Checkpoints
 
 - Planning checkpoint: `b8afa46`.
-- Contract documentation updated; implementation resumed.
-- Focused tests and final acceptance/regressions pending.
+- Contract documentation updated; implementation resumed and completed.
+- All focused tests and final acceptance/regressions passed.
 
 ### Subtask 1 — complete
 
@@ -94,3 +94,38 @@ build with resolution errors. The previous blocker is resolved.
 - Focused verification: 109 tests passed across ROS2 unit tests, binding tests,
   M3 acceptance, and M2 resolution regressions. Repository-wide Ruff and strict
   mypy passed.
+
+
+### Subtask 5 — complete
+
+Full acceptance and regression command (run against the mounted workspace):
+
+```sh
+docker run --rm \
+  --mount type=bind,source=/home/preeth/project_workspace_seed_v0.1.0/project,target=/workspace/project \
+  agent-framework-dev:latest bash docker/check.sh
+```
+
+Results:
+
+- Canonical environment assertions passed: Ubuntu 24.04, ROS2 Jazzy, native
+  `rclpy`, and full workspace bind mount.
+- **287 tests passed**, including all M3 acceptance cases, existing M0–M2
+  regressions, normal-wheel installation, and dependency-free package imports.
+- Ruff lint passed; all 77 Python files passed format checking.
+- Strict mypy passed across all 77 source/test files.
+- The same 287 tests also passed in the temporary Python 3.12 environment.
+- Verified installed and source framework/test-binding versions remain `0.1.0`.
+- Generated the sample artifact at
+  `build/agents/test_agent/ros2_realization.json`, plus the explicitly required
+  command service interface package. Build artifacts remain Git-ignored.
+- M4 Python API/runtime implementation was not started.
+
+Stable implementation commits:
+
+- `a73169e`: endpoint and QoS descriptions, approved contract documentation.
+- `09d15dd`: Channel mappings and permitted override validation.
+- `77f9c8c`: deterministic builder, manifest writer, explicit interface artifacts.
+- `8fa1869`: external test binding realization and M3 integration acceptance.
+
+M3 is complete. No unresolved architectural or ROS2 design blockers remain.
