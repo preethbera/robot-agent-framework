@@ -1,6 +1,6 @@
 # M4 Progress
 
-Status: **In progress**.
+Status: **Complete — M4 acceptance and regressions passed**.
 Version remains **0.1.0**. M5 is out of scope.
 
 ## Planned subtasks
@@ -61,7 +61,7 @@ The four planned subtasks retain their scope; only dependency order changes.
 - M3 artifact integrity checks: **passed at the initial checkpoint**.
 - Authorized runtime design and existing binding/factory code reviewed.
 - Runtime, generation, and ROS2 integration implemented and focused checks passed.
-- M4 full canonical acceptance and regressions: **pending final checkpoint**.
+- M4 full canonical acceptance and regressions: **passed** (see final checks below).
 - No version changes or M5 work.
 
 ### Generic runtime checkpoint — complete
@@ -105,6 +105,8 @@ Commit: `d9411a8`.
 
 ### ROS2 runtime integration checkpoint — complete
 
+Commit: `d08816b`.
+
 - Implemented shared context/executor ownership, runtime-local registration,
   manifest endpoint names/QoS, direct topic/service/action clients and servers,
   static codecs/adapters, and scoped subscription/server cleanup.
@@ -133,3 +135,33 @@ Commit: `d9411a8`.
   suite). Ruff lint/format and strict mypy of 84 source files passed. Generated
   test Agent API regenerated from the existing M3 artifacts.
 - No architecture conflicts found; version remains `0.1.0`.
+
+### Acceptance and regression checkpoint — complete
+
+Canonical environment: Ubuntu 24.04, Python 3.12, ROS2 Jazzy, full workspace
+bind-mounted into `agent-framework-dev:latest`.
+
+Command: `docker run --rm --mount type=bind,source="$PWD",target=/workspace/project
+agent-framework-dev:latest bash docker/check.sh` (run from the workspace root).
+
+- Full suite: **307 passed**, no skips, including all M1–M3 regressions and real
+  M4 ROS2 transport/factory tests.
+- Ruff lint: **passed**. Ruff formatting: **84 files passed**.
+- Strict mypy: **84 source files passed**.
+- Generated `build/agents/test_agent/python/agent_test_agent` from the existing
+  M3 artifacts; strict mypy on that generated package: **passed**.
+- Installed framework/test binding versions and all three existing M3 artifact
+  schema versions: **0.1.0**.
+
+| M4 acceptance criterion | Evidence | Result |
+| --- | --- | --- |
+| Application imports no ROS-specific API | AST import check; `m4_application.py` imports only generated Agent API and `time` | Passed |
+| Property through generated API | Two isolated instances read native published values | Passed |
+| Invocation through generated API | Native service request/result; constraints, timeout, and late-result isolation | Passed |
+| Sensing stream through generated API | Native stream reads, liveness sends, bounded overflow, session reopen | Passed |
+| No Agent Definition parsing per message | Runtime test disables parser, discovery, resolver, schema validation, and generation before running application | Passed |
+
+Additional native action feedback/result/cancellation, service/action server,
+factory creation/startup rollback, reverse shutdown, and resource cleanup checks
+passed. No unresolved blockers or architecture issues. M4 is complete; no M5
+implementation was started.
