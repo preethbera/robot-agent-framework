@@ -1,4 +1,7 @@
-"""ROS2 realization errors.
+"""Build-time ROS2 description failures are resolution errors."""
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
-"""
+from agent_framework.resolution.errors import ResolutionError
+
+
+class RealizationError(ResolutionError):
+    """Invalid binding realization or Agent ROS2 override."""
