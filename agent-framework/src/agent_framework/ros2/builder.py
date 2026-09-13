@@ -89,7 +89,6 @@ def build_realization(resolution: Resolution) -> RealizationManifest:
                 "binding": definition.id,
                 "dependencies": sorted(definition.dependencies),
                 "configuration": configuration,
-                "runtime_parameters": definition.runtime_parameters,
                 "runtime_mode": definition.runtime_mode.value,
                 "runtime_factory": definition.runtime_factory,
                 "internal_communication": template.get("internal_communication", []),

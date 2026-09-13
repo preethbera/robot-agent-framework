@@ -49,7 +49,6 @@ def create_instance(
             instance_id=instance.id,
             namespace=instance.namespace,
             runtime=runtime,
-            instance_config=instance.config,
         ))
     except Exception as error:
         raise DeploymentError(f"failed to instantiate agent '{instance.id}': {error}") from error

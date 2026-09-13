@@ -11,9 +11,6 @@ instances:
     agent: test_agent
     config:
       ros_namespace: "ns1"
-      bindings:
-        lidar_stream:
-          max_rate_hz: 8.0
   - id: inst2
     agent: minimal_agent
 """
@@ -24,12 +21,10 @@ instances:
     assert spec.instances[0].id == "inst1"
     assert spec.instances[0].agent == "test_agent"
     assert spec.instances[0].namespace == "ns1"
-    assert spec.instances[0].config["lidar_stream"]["max_rate_hz"] == 8.0
     
     assert spec.instances[1].id == "inst2"
     assert spec.instances[1].agent == "minimal_agent"
     assert spec.instances[1].namespace == ""
-    assert spec.instances[1].config == {}
 
 def test_parse_invalid_schema_version() -> None:
     yaml = """
@@ -68,16 +63,5 @@ instances:
   - id: valid_id
 """
     with pytest.raises(DeploymentError, match="invalid or missing agent reference"):
-        parse_deployment_spec(yaml)
-
-def test_parse_invalid_config() -> None:
-    yaml = """
-schema_version: "0.1.0"
-instances:
-  - id: valid_id
-    agent: agent1
-    config: "invalid"
-"""
-    with pytest.raises(DeploymentError, match="config must be a mapping"):
         parse_deployment_spec(yaml)
 

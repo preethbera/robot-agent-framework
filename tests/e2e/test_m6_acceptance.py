@@ -82,15 +82,12 @@ def main():
         
         assert sensor1.namespace == "sensor1"
         assert sensor1.instance_id == "test_sensor_1"
-        assert sensor1.instance_config["lidar_stream"]["max_rate_hz"] == 8.0
         
         assert sensor2.namespace == "sensor2"
         assert sensor2.instance_id == "test_sensor_2"
-        assert sensor2.instance_config["lidar_stream"]["max_rate_hz"] == 15.0
         
         assert min_agent.namespace == "min1"
         assert min_agent.instance_id == "test_min"
-        assert "test" not in min_agent.instance_config
 
         # Verify they share the same runtime registry
         assert deployment.runtime is not None

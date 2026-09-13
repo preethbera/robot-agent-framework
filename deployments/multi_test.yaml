@@ -4,16 +4,10 @@ instances:
     agent: test_agent
     config:
       ros_namespace: "sensor1"
-      bindings:
-        lidar_stream:
-          max_rate_hz: 8.0
   - id: test_sensor_2
     agent: test_agent
     config:
       ros_namespace: "sensor2"
-      bindings:
-        lidar_stream:
-          max_rate_hz: 15.0
   - id: test_min
     agent: minimal_agent
     config:

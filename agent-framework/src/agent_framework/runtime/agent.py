@@ -39,7 +39,6 @@ class Codec:
 class BindingSpec:
     id: str
     configuration: Mapping[str, object]
-    runtime_parameters: tuple[str, ...]
     realization: Mapping[str, Any]
     runtime_factory: str | None = None
 
@@ -154,14 +153,12 @@ class AgentRuntime:
         instance_id: str,
         namespace: str = "",
         runtime: SharedServices | None = None,
-        instance_config: dict[str, dict[str, object]] | None = None,
     ) -> None:
         if not instance_id:
             raise AgentError(FailureCode.INVALID_VALUE, "instance_id must not be empty")
         self.spec = spec
         self.instance_id = instance_id
         self.namespace = namespace
-        self.instance_config = instance_config or {}
         self.lock = RLock()
         self.active: dict[str, Operation] = {}
         self.openers: dict[str, list[Callable[[Operation], None]]] = {}

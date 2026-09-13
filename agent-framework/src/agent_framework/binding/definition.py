@@ -60,7 +60,6 @@ class BindingDefinition:
         default_factory=lambda: PayloadSchema(kind=SchemaKind.RECORD)
     )
     configuration_defaults: Mapping[str, object] = field(default_factory=dict)
-    runtime_parameters: tuple[str, ...] = ()
     dependencies: tuple[str, ...] = ()
     ros2_template: Mapping[str, object] = field(default_factory=dict)
     configure_ros2: Callable[[Mapping[str, object]], Mapping[str, object]] | None = None

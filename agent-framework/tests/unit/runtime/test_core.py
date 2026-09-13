@@ -45,7 +45,7 @@ def spec() -> AgentSpec:
         "test",
         (ChannelSpec("sensor.output", "sensor", "agent_to_consumer", "output"),),
         (),
-        tuple(BindingSpec(name, {}, (), {}) for name in ("first", "second")),
+        tuple(BindingSpec(name, {}, {}) for name in ("first", "second")),
         (),
     )
 

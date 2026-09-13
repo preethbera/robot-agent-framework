@@ -60,28 +60,10 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
         if not isinstance(namespace, str):
             raise DeploymentError(f"instance '{instance_id}' has invalid namespace")
 
-        config = {}
-        if "config" in item:
-            item_config = item["config"]
-            if not isinstance(item_config, dict):
-                raise DeploymentError(f"instance '{instance_id}' config must be a mapping")
-            
-            bindings = item_config.get("bindings", {})
-            if not isinstance(bindings, dict):
-                raise DeploymentError(f"instance '{instance_id}' config.bindings must be a mapping")
-            
-            for binding_id, binding_cfg in bindings.items():
-                if not isinstance(binding_cfg, dict):
-                    raise DeploymentError(
-                        f"instance '{instance_id}' config.bindings.{binding_id} must be a mapping"
-                    )
-                config[binding_id] = binding_cfg
-
         instances.append(AgentInstance(
             id=instance_id,
             agent=agent_id,
             namespace=namespace,
-            config=config,
         ))
 
     return DeploymentSpec(schema_version="0.1.0", instances=tuple(instances))

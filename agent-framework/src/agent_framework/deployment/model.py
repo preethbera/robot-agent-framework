@@ -1,7 +1,6 @@
 """Deployment Specification types."""
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -9,7 +8,6 @@ class AgentInstance:
     id: str
     agent: str
     namespace: str = ""
-    config: Mapping[str, Mapping[str, object]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

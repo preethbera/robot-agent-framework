@@ -126,25 +126,9 @@ class Runtime:
                         )
                     agent.emit(channel, value, operation)
 
-                configuration = cast(dict[str, object], copy.deepcopy(binding.configuration))
-                if binding.id in agent.instance_config:
-                    for key, value in agent.instance_config[binding.id].items():
-                        if key not in configuration:
-                            raise AgentError(
-                                FailureCode.STARTUP,
-                                "Instance config override specifies unknown "
-                                f"configuration key '{key}'",
-                            )
-                        if key not in binding.runtime_parameters:
-                            raise AgentError(
-                                FailureCode.STARTUP,
-                                f"Instance config override modifies build-time parameter '{key}'",
-                            )
-                        configuration[key] = value
-
                 context = FactoryContext(
                     binding.id,
-                    configuration,
+                    copy.deepcopy(binding.configuration),
                     copy.deepcopy(binding.realization),
                     agent.instance_id,
                     agent.spec.id,
