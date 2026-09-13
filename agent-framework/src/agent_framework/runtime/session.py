@@ -1,4 +1,7 @@
-"""Session lifecycle handling.
+"""Scoped session handle; close releases its delivery buffers and operation resources."""
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
-"""
+from .invocation import Invocation
+
+
+class Session(Invocation):
+    """A bounded stream session, explicitly closed or used as a context manager."""

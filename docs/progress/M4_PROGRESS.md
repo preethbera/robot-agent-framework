@@ -1,6 +1,6 @@
 # M4 Progress
 
-Status: **Blocked on the code-backed binding runtime factory contract**.
+Status: **In progress**.
 Version remains **0.1.0**. M5 is out of scope.
 
 ## Planned subtasks
@@ -43,34 +43,18 @@ a stable checkpoint commit.
 - Section 3 explicitly allows generated Python syntax to evolve during
   implementation. Choosing that syntax is therefore not a blocker.
 
-## Exact remaining blocker
+## Factory decision resolved
 
-M4 requires optional binding runtime factory support for code-backed bindings.
-The authorized design's section 4 requires code-backed runtime instances when
-needed, but does not define the factory/component protocol.
+The user supplied the factory inputs, Channel registration, lifecycle, and
+resource ownership contract. It is recorded in the authorized runtime design.
+Checkpoint `388442c` records the superseded blocker. Implementation proceeds
+with ordinary local choices made autonomously.
 
-Existing implementation evidence:
+## Implementation order
 
-- `binding/definition.py` defines `runtime_factory: str | None` and requires a
-  reference for `RuntimeMode.CODE_BACKED`; it defines no runtime protocol.
-- `ros2/builder.py` preserves the factory reference in the finalized manifest.
-- M3's factory test verifies reference preservation without importing or invoking
-  the factory, using `unimportable_binding:create`.
-- Generic and ROS2 runtime modules remain stubs.
-
-The necessary external binding contract still needs to establish:
-
-1. The factory's inputs and the resources/services made available to it.
-2. The returned component interface and how it exchanges logical Channel values
-   with the generic Agent runtime.
-3. Component initialization, startup, shutdown, and resource ownership, including
-   cleanup if creation/startup fails.
-
-These define an interoperability and lifecycle contract between independently
-installed bindings and the framework, rather than just generated Python syntax.
-Implementing a guessed protocol would invent a decision the user has reserved
-for review. Please provide this minimal factory/component contract before work
-resumes. No architectural contradiction has been found in the inspected areas.
+The runtime abstractions are the generator's import dependencies, so implement
+those first, then artifact-driven generation, ROS2 integration, and acceptance.
+The four planned subtasks retain their scope; only dependency order changes.
 
 ## Checks and acceptance
 
@@ -80,3 +64,18 @@ resumes. No architectural contradiction has been found in the inspected areas.
 - M4 implementation and focused runtime tests: **not started**.
 - M4 acceptance and full regressions: **not run; acceptance not yet passed**.
 - No version changes or M5 work.
+
+### Generic runtime checkpoint — complete
+
+- Implemented bounded FIFO Channels (overflow is a structured error), one-value
+  Property caches, typed input/output handles, scoped invocation/session handles,
+  runtime-local instance registration, and component cleanup in reverse order.
+- Internal factory context carries the approved inputs and Channel registration/
+  delivery callbacks; concrete ROS2 services are wired in the transport subtask.
+- Local choices: blocking typed reads with finite per-read timeouts; sessions may
+  remain open until explicitly closed. One active operation per Capability per
+  instance avoids inventing correlation for uncorrelated native topic streams.
+  Late correlated results are discarded after their operation closes.
+- Focused checks: 7 runtime tests passed, including bounded queues, blocked-reader
+  shutdown, startup rollback, duplicate identities, and late-result isolation.
+  Scoped Ruff and strict mypy passed.

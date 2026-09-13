@@ -54,6 +54,33 @@ Runtime responsibilities include:
 
 No YAML parsing, binding discovery, schema resolution, or code generation occurs per message.
 
+### v0.1.0 code-backed binding factory contract
+
+A code-backed factory is an internal runtime extension point, loaded only from
+its finalized manifest reference. It receives binding instance identity,
+already-resolved configuration, the relevant finalized ROS2 realization, Agent
+instance/runtime identity and namespace, and access to framework-owned shared
+ROS2 services. It must not parse Agent YAML, discover plugins, resolve schemas
+or bindings, or generate code at runtime.
+
+The factory returns a component implementing the framework lifecycle protocol.
+The component provides/registers its binding's Channel implementations. Internal
+Python protocol names are implementation details; technology-specific types
+must not appear in the generated application-facing API.
+
+The framework creates shared ROS2 infrastructure first, then components, and
+starts components before declaring the Agent instance ready. Partial startup
+failure shuts down started components in reverse order and releases resources
+from incomplete creation. Normal shutdown stops components before destroying
+shared infrastructure. Repeated lifecycle calls should be safe where practical.
+
+The framework owns shared context/executor and shared infrastructure. Components
+own their own subscriptions, publishers, timers, background work, state, and
+technology resources, releasing them during shutdown. Factories retain no
+independent long-lived resources after returning a component. No middleware hop,
+dependency-injection framework, runtime discovery, or runtime schema resolution
+is introduced.
+
 ## 5. Deployment Specification
 
 Agent semantics are not repeated for each runtime instance.

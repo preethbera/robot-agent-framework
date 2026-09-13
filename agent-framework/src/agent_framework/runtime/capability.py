@@ -1,4 +1,8 @@
-"""Capability runtime access.
+"""Base for statically generated typed Capability handles."""
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
-"""
+from .agent import AgentRuntime
+
+
+class Capability:
+    def __init__(self, agent: AgentRuntime) -> None:
+        self._agent = agent
