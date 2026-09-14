@@ -1,7 +1,3 @@
-# Generated project artifacts
-/build/*
-!/build/.gitkeep
-
 # Python
 __pycache__/
 *.py[cod]
@@ -20,3 +16,10 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
+
+# Excluded per user request for framework-only repository
+/build/
+/agents/
+/deployments/
+/docs/
+/tests/
