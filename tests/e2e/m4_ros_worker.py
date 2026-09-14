@@ -14,9 +14,7 @@ from agent_framework.runtime.errors import AgentError, FailureCode
 
 def direct() -> None:
     Command = importlib.import_module("agent_binding_test_interfaces.srv").Command
-    ReentrantCallbackGroup = importlib.import_module(
-        "rclpy.callback_groups"
-    ).ReentrantCallbackGroup
+    ReentrantCallbackGroup = importlib.import_module("rclpy.callback_groups").ReentrantCallbackGroup
     Float64 = importlib.import_module("std_msgs.msg").Float64
 
     shared = Runtime()
@@ -36,18 +34,14 @@ def direct() -> None:
         sensor.publish(Float64(data=7.0))
 
     for instance, value in (("m4_a", 21.5), ("m4_b", 31.5)):
-        temperature = node.create_publisher(
-            Float64, f"/native/{instance}/temperature", 5
-        )
+        temperature = node.create_publisher(Float64, f"/native/{instance}/temperature", 5)
         sensor = node.create_publisher(Float64, f"/native/{instance}/sensor/output", 5)
         node.create_timer(
             0.2,
             lambda t=temperature, s=sensor, v=value: publish(t, s, v),
             callback_group=group,
         )
-        node.create_service(
-            Command, f"/native/{instance}/command", command, callback_group=group
-        )
+        node.create_service(Command, f"/native/{instance}/command", command, callback_group=group)
         node.create_subscription(
             Float64,
             f"/native/{instance}/sensor/liveness",
@@ -169,9 +163,7 @@ def protocols() -> None:
     client = actions.ActionClient(
         node, Fibonacci, "/native/action_server/fibonacci", callback_group=group
     )
-    service = node.create_client(
-        Command, "/native/service_server/command", callback_group=group
-    )
+    service = node.create_client(Command, "/native/service_server/command", callback_group=group)
     try:
         module = importlib.import_module("agent_action_agent")
         with module.Agent(instance_id="action_client") as agent:

@@ -1,6 +1,9 @@
-"""M7 acceptance test: Independent Sensor Capability and Supervisor Demo."""
+"""Real combined PX4 and independent LiDAR acceptance in the pinned environment."""
 
-import importlib.util
+import ast
+import os
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -13,166 +16,59 @@ from agent_framework.ros2 import write_realization
 WORKSPACE = Path(__file__).resolve().parents[2]
 
 
-@pytest.fixture(scope="module")
-def deployment_artifacts(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    if importlib.util.find_spec("rclpy") is None:
-        pytest.skip("ROS2 not available")
-    if importlib.util.find_spec("px4_msgs") is None:
-        pytest.skip("PX4 messages are not available")
-
-    build_root = tmp_path_factory.mktemp("build")
-
-    # Build sensor_drone agent
-    agent_def = load_agent_definition(
-        WORKSPACE / "agents" / "sensor_drone" / "agent.yaml"
+def test_application_boundary() -> None:
+    tree = ast.parse((WORKSPACE / "tests/e2e/m7_application.py").read_text())
+    names = {
+        node.module.split(".")[0]
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module
+    }
+    names.update(
+        alias.name.split(".")[0]
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
     )
-    sensor_drone = resolve_agent(agent_def)
+    assert names <= {
+        "sys",
+        "time",
+        "pathlib",
+        "threading",
+        "typing",
+        "agent_sensor_drone",
+        "agent_framework",
+    }
 
-    # 5. M7 definition resolves without error
-    write_artifacts(sensor_drone, build_root)
 
-    # 6. Realization processes existing endpoints without validation errors
-    write_realization(sensor_drone, build_root)
-    # 6. Python API is generated only after ROS2 realization
-    generate_python(build_root / "build" / "agents" / sensor_drone.agent.id)
-
-    import subprocess
-    import sys
-
-    # Build ROS2 interfaces
-    workspace = build_root
-    subprocess.run(
-        [
-            "colcon",
-            "--log-base",
-            str(workspace / "log"),
-            "build",
-            "--base-paths",
-            str(build_root / "build" / "agents" / "sensor_drone" / "interfaces"),
-            "--build-base",
-            str(workspace / "compile"),
-            "--install-base",
-            str(workspace / "install"),
-            "--cmake-args",
-            "-DBUILD_TESTING=OFF",
-            "-DPython3_EXECUTABLE=/usr/bin/python3",
-        ],
-        check=True,
+@pytest.mark.skipif(os.environ.get("M5_SITL") != "1", reason="Requires pinned M5 SITL image")
+def test_combined_sitl_sensor_application(tmp_path: Path, sitl_runner: Callable[..., None]) -> None:
+    definition = load_agent_definition(WORKSPACE / "agents/sensor_drone/agent.yaml")
+    resolved = resolve_agent(definition)
+    artifact, _ = write_artifacts(resolved, tmp_path)
+    write_realization(resolved, tmp_path)
+    package = generate_python(artifact.parent)
+    environment = dict(os.environ)
+    environment.update(
+        PX4_SYS_AUTOSTART="10040",
+        PX4_SIM_MODEL="sihsim_quadx",
+        PX4_UXRCE_DDS_NS="demo1",
+        PX4_HOME_LAT="47.397742",
+        PX4_HOME_LON="8.545594",
+        PX4_HOME_ALT="488.0",
+        PX4_PARAM_COM_RC_IN_MODE="4",
+        PX4_PARAM_NAV_DLL_ACT="0",
+        PX4_PARAM_COM_DISARM_PRFLT="0",
     )
-
-    # Run the validation in a ROS2-aware subprocess
-    worker_script = workspace / "m7_worker.py"
-    worker_script.write_text("""
-import sys
-import importlib.util
-
-if importlib.util.find_spec("px4_msgs") is None:
-    print("SKIPPED_NO_PX4_MSGS")
-    sys.exit(0)
-
-from pathlib import Path
-from agent_framework.deployment.loader import load_deployment_spec
-from agent_framework.deployment.registry import Deployment
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
-from diagnostic_msgs.msg import DiagnosticStatus
-from geometry_msgs.msg import Vector3
-
-def main():
-    workspace = Path(sys.argv[1])
-    spec_path = Path(sys.argv[2])
-    spec = load_deployment_spec(spec_path)
-    
-    rclpy.init()
-    node = Node('m7_demo_publisher')
-    
-    # Publish dummy lidar data to verify independent sensor capability
-    scan_pub = node.create_publisher(LaserScan, '/demo1/lidar/scan', 5)
-    status_pub = node.create_publisher(DiagnosticStatus, '/demo1/lidar/status', 1)
-    perf_pub = node.create_publisher(Vector3, '/demo1/lidar/performance', 1)
-    
-    with Deployment(spec, workspace / "build" / "agents") as deployment:
-        drone1 = deployment.instances.get("drone_instance_1")
-        drone2 = deployment.instances.get("drone_instance_2")
-        
-        # 10. Multiple Agent instances can run without framework-core changes
-        assert drone1 is not None
-        assert drone2 is not None
-        
-        assert drone1.namespace == "demo1"
-        assert drone2.namespace == "demo2"
-        
-        # 7. PX4 state/control works through the generated API
-        assert hasattr(drone1, 'arm')
-        assert hasattr(drone1, 'landed')
-        
-        # 8. Independent sensor Capability streams data through the same Agent API
-        assert hasattr(drone1, 'scan')
-        assert hasattr(drone1, 'lidar_status')
-        assert hasattr(drone1, 'lidar_performance')
-        
-        # 9. A Group mixes sensor Properties and Capabilities
-        assert "sensor_suite" in [g["id"] for g in drone1.spec.metadata.get("groups", [])]
-
-        scan_msg = LaserScan()
-        status_msg = DiagnosticStatus()
-        status_msg.level = b'\\x00'
-        status_msg.name = "lidar"
-        status_msg.message = "OK"
-        status_msg.hardware_id = "lidar_1"
-        perf_msg = Vector3()
-        perf_msg.x = 0.01
-        perf_msg.y = 2.0
-        perf_msg.z = 0.0
-        
-        status_pub.publish(status_msg)
-        perf_pub.publish(perf_msg)
-        
-        import time
-        time.sleep(0.5)
-        
-        # 11. Application source contains no direct ROS2 or PX4 APIs.
-        status_val = drone1.lidar_status.get(timeout=1.0)
-        assert status_val == 0
-        
-        with drone1.scan.start(timeout=1.0) as call:
-            scan_pub.publish(scan_msg)
-            scan_val = call.scan.read(timeout=1.0)
-            assert hasattr(scan_val, 'ranges')
-        
-        perf_val = drone1.lidar_performance.get(timeout=1.0)
-        assert hasattr(perf_val, 'latency')
-        assert hasattr(perf_val, 'queue_depth')
-        assert hasattr(perf_val, 'dropped_samples')
-
-    node.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == "__main__":
-    main()
-""")
-
-    result = subprocess.run(
+    environment["PYTHONPATH"] = str(package.parent) + os.pathsep + environment.get("PYTHONPATH", "")
+    sitl_runner(
+        tmp_path,
+        environment,
         [
-            "bash",
-            "-c",
-            'source "$1"; shift; exec "$@"',
-            "m7-test",
-            str(workspace / "install" / "local_setup.bash"),
             sys.executable,
-            str(worker_script),
-            str(workspace),
-            str(WORKSPACE / "deployments" / "sensor_demo.yaml"),
+            str(WORKSPACE / "tests/e2e/m7_application.py"),
+            str(tmp_path / "build/agents"),
+            str(WORKSPACE / "deployments/sensor_demo.yaml"),
         ],
-        capture_output=True,
-        text=True,
-        check=False,
+        instance=1,
+        extra_commands=[[sys.executable, str(WORKSPACE / "tests/e2e/m7_sensor_worker.py")]],
     )
-    assert result.returncode == 0, result.stdout + result.stderr
-
-    return build_root / "build" / "agents"
-
-
-def test_m7_demo(deployment_artifacts: Path) -> None:
-    pass

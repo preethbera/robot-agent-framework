@@ -136,6 +136,7 @@ class Runtime:
                     scope,
                     register,
                     emit,
+                    copy.deepcopy(agent.instance_configuration.get(binding.id, {})),
                 )
                 component = reference(binding.runtime_factory)(context)
                 if not callable(getattr(component, "start", None)) or not callable(

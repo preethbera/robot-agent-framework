@@ -44,9 +44,7 @@ COMMAND: dict[str, object] = {
                 "durability": "volatile",
             },
             "overridable": ["name", "qos.depth", "qos.reliability"],
-            "requirements": {
-                "qos": {"reliability": "reliable", "durability": "volatile"}
-            },
+            "requirements": {"qos": {"reliability": "reliable", "durability": "volatile"}},
         }
     ],
     "channel_mappings": [
@@ -74,9 +72,7 @@ COMMAND: dict[str, object] = {
             },
         }
     ],
-    "startup": [
-        {"endpoint": "command", "requirement": "service available before invocation"}
-    ],
+    "startup": [{"endpoint": "command", "requirement": "service available before invocation"}],
 }
 
 
@@ -125,17 +121,11 @@ def stream_template(configuration: Mapping[str, object]) -> Mapping[str, object]
             }
         )
     else:
-        internal.append(
-            {"responsibility": "liveness", "owner": "binding", "max_gap_s": 0.5}
-        )
+        internal.append({"responsibility": "liveness", "owner": "binding", "max_gap_s": 0.5})
     return {
         "endpoints": endpoints,
         "channel_mappings": mappings,
         "internal_communication": internal,
-        "startup": [
-            {"endpoint": "output", "requirement": "connect before session starts"}
-        ],
-        "lifecycle": [
-            {"endpoint": "output", "requirement": "disconnect when session closes"}
-        ],
+        "startup": [{"endpoint": "output", "requirement": "connect before session starts"}],
+        "lifecycle": [{"endpoint": "output", "requirement": "disconnect when session closes"}],
     }

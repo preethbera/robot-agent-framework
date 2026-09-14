@@ -79,3 +79,14 @@ def mapping(
     if adapter:
         result["adapter"] = adapter
     return result
+
+
+INSTANCE_CONFIG = PayloadSchema(
+    kind=SchemaKind.RECORD,
+    fields={
+        name: PayloadSchema(
+            kind=SchemaKind.ENUM, scalar_type=ScalarType.UINT8, values=tuple(range(1, 256))
+        )
+        for name in ("target_system", "target_component")
+    },
+)

@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import pytest
-
 from agent_framework.ros2.endpoints import (
     apply_override,
     materialize_endpoint,

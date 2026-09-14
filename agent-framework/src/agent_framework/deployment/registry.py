@@ -1,5 +1,6 @@
 """Deployment runtime coordinator."""
 
+from collections.abc import Mapping
 from contextlib import suppress
 from pathlib import Path
 from typing import Self
@@ -8,7 +9,7 @@ from agent_framework.runtime.agent import AgentRuntime, SharedServices
 from agent_framework.runtime.agent import create_runtime as create_shared_runtime
 
 from .errors import DeploymentError
-from .instances import create_instance
+from .instances import AgentFactory, create_instance
 from .model import DeploymentSpec
 
 
@@ -16,7 +17,12 @@ class Deployment:
     """Manages the lifecycle of a set of agent instances sharing a runtime."""
 
     def __init__(
-        self, spec: DeploymentSpec, build_root: Path, runtime: SharedServices | None = None
+        self,
+        spec: DeploymentSpec,
+        build_root: Path,
+        runtime: SharedServices | None = None,
+        *,
+        agent_types: Mapping[str, AgentFactory] | None = None,
     ) -> None:
         self.spec = spec
         self._owns_runtime = runtime is None
@@ -27,7 +33,10 @@ class Deployment:
             self.instances: dict[str, AgentRuntime] = {}
             for instance_spec in spec.instances:
                 self.instances[instance_spec.id] = create_instance(
-                    instance_spec, build_root, self.runtime
+                    instance_spec,
+                    build_root,
+                    self.runtime,
+                    (agent_types or {}).get(instance_spec.agent),
                 )
         except Exception as error:
             with suppress(Exception):
@@ -43,7 +52,7 @@ class Deployment:
     def close(self) -> None:
         failures = []
         if hasattr(self, "instances"):
-            for instance in self.instances.values():
+            for instance in reversed(tuple(self.instances.values())):
                 try:
                     instance.close()
                 except Exception as error:

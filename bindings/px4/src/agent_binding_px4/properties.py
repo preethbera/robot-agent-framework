@@ -104,9 +104,7 @@ def _property(
         ),
         ros2_template={
             "endpoints": [endpoint("state", interface, topic)],
-            "channel_mappings": [
-                mapping("value", "state", field=field, adapter=adapter)
-            ],
+            "channel_mappings": [mapping("value", "state", field=field, adapter=adapter)],
         },
     )
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from contextlib import suppress
+from copy import deepcopy
 from dataclasses import dataclass, field
 from importlib import import_module
 from threading import RLock
@@ -35,12 +36,20 @@ class Codec:
     adapter: str | None = None
 
 
+def _empty_instance(values: Mapping[str, object]) -> None:
+    if values:
+        raise ValueError("binding does not declare instance parameters")
+
+
 @dataclass(frozen=True, slots=True)
 class BindingSpec:
     id: str
     configuration: Mapping[str, object]
     realization: Mapping[str, Any]
     runtime_factory: str | None = None
+    validate_instance: Callable[[Mapping[str, object]], None] = lambda values: _empty_instance(
+        values
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +85,7 @@ class FactoryContext:
     services: Any
     register: Callable[[str, Callable[[object, Operation], None]], None]
     emit: Callable[[str, object, Operation | None], None]
+    instance_configuration: Mapping[str, object] = field(default_factory=dict)
 
 
 class Operation:
@@ -153,9 +163,23 @@ class AgentRuntime:
         instance_id: str,
         namespace: str = "",
         runtime: SharedServices | None = None,
+        instance_configuration: Mapping[str, Mapping[str, object]] | None = None,
     ) -> None:
         if not instance_id:
             raise AgentError(FailureCode.INVALID_VALUE, "instance_id must not be empty")
+        try:
+            if instance_configuration is not None and not isinstance(
+                instance_configuration, Mapping
+            ):
+                raise ValueError("instance configuration must be a mapping")
+            values = deepcopy(dict(instance_configuration or {}))
+            if values.keys() - {binding.id for binding in spec.bindings}:
+                raise ValueError("unknown binding instance configuration target")
+            for binding in spec.bindings:
+                binding.validate_instance(values.get(binding.id, {}))
+        except (ValueError, TypeError) as error:
+            raise AgentError(FailureCode.INVALID_VALUE, str(error)) from error
+        self.instance_configuration = values
         self.spec = spec
         self.instance_id = instance_id
         self.namespace = namespace

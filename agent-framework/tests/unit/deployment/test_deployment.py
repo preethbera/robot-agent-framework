@@ -1,5 +1,4 @@
 import pytest
-
 from agent_framework.deployment.errors import DeploymentError
 from agent_framework.deployment.loader import parse_deployment_spec
 
@@ -69,3 +68,23 @@ instances:
 """
     with pytest.raises(DeploymentError, match="invalid or missing agent reference"):
         parse_deployment_spec(yaml)
+
+
+@pytest.mark.parametrize("config", ["[]", "{unknown: 1}", "{bindings: []}", "{bindings: {arm: 2}}"])
+def test_invalid_instance_configuration(config: str) -> None:
+    with pytest.raises(DeploymentError):
+        parse_deployment_spec(
+            f"schema_version: '0.1.0'\ninstances:\n- id: a\n  agent: a\n  config: {config}\n"
+        )
+
+
+def test_binding_instance_configuration_preserved() -> None:
+    spec = parse_deployment_spec("""schema_version: '0.1.0'
+instances:
+- id: a
+  agent: px4_agent
+  config:
+    bindings:
+      arm: {target_system: 2}
+""")
+    assert spec.instances[0].instance_configuration == {"arm": {"target_system": 2}}

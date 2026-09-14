@@ -27,29 +27,6 @@ def definitions() -> tuple[BindingDefinition, ...]:
         purpose=Purpose.VALUE,
     )
 
-    perf_schema = PayloadSchema(
-        kind=SchemaKind.RECORD,
-        fields={
-            "latency": PayloadSchema(
-                kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT64
-            ),
-            "queue_depth": PayloadSchema(
-                kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT64
-            ),
-            "dropped_samples": PayloadSchema(
-                kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT64
-            ),
-        },
-    )
-    perf_channel = Channel(
-        id="value",
-        direction=Direction.AGENT_TO_CONSUMER,
-        schema=perf_schema,
-        cardinality=Cardinality.STREAM,
-        lifetime=Lifetime.PERSISTENT,
-        purpose=Purpose.VALUE,
-    )
-
     return (
         BindingDefinition(
             id="lidar.status",
@@ -86,47 +63,8 @@ def definitions() -> tuple[BindingDefinition, ...]:
                         "channel": "value",
                         "endpoint": "status_topic",
                         "part": "message",
+                        "field": "level",
                         "adapter": "agent_binding_lidar.properties:status_adapter",
-                    }
-                ],
-            },
-        ),
-        BindingDefinition(
-            id="lidar.performance",
-            description="Lidar performance instrumentation",
-            primitive=Primitive.PROPERTY,
-            default_semantics=BindingSemantics(
-                element=Property(
-                    id="performance",
-                    description="Performance metrics for latency, queue depth, dropped samples",
-                    schema=perf_schema,
-                    channels=("value",),
-                ),
-                channels=(perf_channel,),
-            ),
-            ros2_template={
-                "endpoints": [
-                    {
-                        "id": "perf_topic",
-                        "kind": "topic",
-                        "role": "subscriber",
-                        "interface_type": "geometry_msgs/msg/Vector3",
-                        "name_template": "/{namespace}/lidar/performance",
-                        "existing": True,
-                        "qos": {
-                            "history": "keep_last",
-                            "depth": 1,
-                            "reliability": "reliable",
-                            "durability": "volatile",
-                        },
-                    }
-                ],
-                "channel_mappings": [
-                    {
-                        "channel": "value",
-                        "endpoint": "perf_topic",
-                        "part": "message",
-                        "adapter": "agent_binding_lidar.properties:performance_adapter",
                     }
                 ],
             },
@@ -134,21 +72,9 @@ def definitions() -> tuple[BindingDefinition, ...]:
     )
 
 
-def status_adapter(msg: object) -> int:
-    level = getattr(msg, "level", b"\x00")
-    if isinstance(level, bytes):
-        return int(level[0]) if level else 0
-    return int(level)
-
-
-def performance_adapter(msg: object) -> object:
-    m = msg  # Vector3
-    return type(
-        "Performance",
-        (),
-        {
-            "latency": getattr(m, "x", 0.0),
-            "queue_depth": getattr(m, "y", 0.0),
-            "dropped_samples": getattr(m, "z", 0.0),
-        },
-    )()
+def status_adapter(level: object) -> int:
+    if isinstance(level, bytes) and len(level) == 1:
+        level = level[0]
+    if type(level) is not int or level not in (0, 1, 2, 3):
+        raise ValueError("invalid DiagnosticStatus level")
+    return level

@@ -27,6 +27,7 @@ from .catalog import (
     CONFIG,
     DEFAULTS,
     EMPTY,
+    INSTANCE_CONFIG,
     NUMBER,
     STRING,
     endpoint,
@@ -158,6 +159,7 @@ def definition() -> BindingDefinition:
         configuration_defaults=OFFBOARD_DEFAULTS,
         configure=semantics,
         configure_ros2=realization,
+        instance_configuration_schema=INSTANCE_CONFIG,
         runtime_mode=RuntimeMode.CODE_BACKED,
         runtime_factory="agent_binding_px4.offboard_runtime:create_component",
     )

@@ -10,7 +10,5 @@ def get_bindings() -> BindingPackage:
 
     return BindingPackage(
         api_versions=("0.1.0",),
-        definitions=properties.definitions()
-        + commands.definitions()
-        + (offboard.definition(),),
+        definitions=properties.definitions() + commands.definitions() + (offboard.definition(),),
     )

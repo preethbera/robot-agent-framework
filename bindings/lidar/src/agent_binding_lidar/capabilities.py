@@ -25,9 +25,7 @@ def definitions() -> tuple[BindingDefinition, ...]:
         fields={
             "ranges": PayloadSchema(
                 kind=SchemaKind.SEQUENCE,
-                items=PayloadSchema(
-                    kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT32
-                ),
+                items=PayloadSchema(kind=SchemaKind.SCALAR, scalar_type=ScalarType.FLOAT32),
             )
         },
     )

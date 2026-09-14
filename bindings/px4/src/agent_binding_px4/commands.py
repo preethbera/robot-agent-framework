@@ -27,6 +27,7 @@ from .catalog import (
     CONFIG,
     DEFAULTS,
     EMPTY,
+    INSTANCE_CONFIG,
     NUMBER,
     STRING,
     endpoint,
@@ -147,12 +148,11 @@ def definition(command: Command) -> BindingDefinition:
         configuration_schema=CONFIG,
         configuration_defaults=DEFAULTS,
         configure=configure,
+        instance_configuration_schema=INSTANCE_CONFIG,
         runtime_mode=RuntimeMode.CODE_BACKED,
         runtime_factory="agent_binding_px4.runtime:create_command",
         ros2_template={
-            "endpoints": [
-                endpoint("command", "VehicleCommand", "vehicle_command", service=True)
-            ],
+            "endpoints": [endpoint("command", "VehicleCommand", "vehicle_command", service=True)],
             "channel_mappings": [
                 mapping("request", "command", "request", "request"),
                 mapping("ack", "command", "response", "reply.result"),

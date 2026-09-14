@@ -37,8 +37,9 @@ RUN source /opt/px4-versions.env \
 # acquisition cached separately from compilation and leave upstream code intact.
 RUN cd /opt/px4/firmware && make -j2 px4_sitl_default
 
+COPY bindings/lidar/ /workspace/project/bindings/lidar/
 COPY bindings/px4/ /workspace/project/bindings/px4/
-RUN python -m pip install --no-build-isolation --no-deps -e /workspace/project/bindings/px4 \
+RUN python -m pip install --no-build-isolation --no-deps -e /workspace/project/bindings/px4 -e /workspace/project/bindings/lidar \
     && python -m pip check
 COPY --chmod=755 docker/px4-entrypoint.sh /usr/local/bin/px4-entrypoint
 ENV PATH="/opt/px4/xrce/bin:${PATH}" LD_LIBRARY_PATH="/opt/px4/xrce/lib"

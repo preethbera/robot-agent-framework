@@ -42,26 +42,19 @@ def test_complete_m3_realization(tmp_path: Path) -> None:
     # Direct Property reads native transport without a generic republishing hop.
     temperature = endpoints["temperature.value"]
     assert temperature["kind"] == "topic" and temperature["role"] == "subscriber"
-    assert (
-        temperature["interface_type"] == "std_msgs/msg/Float64"
-        and temperature["existing"]
-    )
+    assert temperature["interface_type"] == "std_msgs/msg/Float64" and temperature["existing"]
     assert temperature["name_template"] == "/native/{instance_id}/temperature"
     assert mappings["temperature.value"]["field"] == "data"
     # The two invocation Channels share a single request/response service.
     assert endpoints["command.command"]["kind"] == "service"
-    assert (
-        mappings["command.request"]["endpoint"]
-        == mappings["command.result"]["endpoint"]
-    )
+    assert mappings["command.request"]["endpoint"] == mappings["command.result"]["endpoint"]
     assert mappings["command.request"]["part"] == "request"
     assert mappings["command.result"]["part"] == "response"
     # A sensing Capability maps its stream and application liveness to two endpoints.
     assert endpoints["lidar_stream.output"]["role"] == "subscriber"
     assert endpoints["lidar_stream.liveness"]["role"] == "publisher"
     assert (
-        mappings["lidar_stream.output"]["endpoint"]
-        != mappings["lidar_stream.liveness"]["endpoint"]
+        mappings["lidar_stream.output"]["endpoint"] != mappings["lidar_stream.liveness"]["endpoint"]
     )
     assert len(endpoints) == 4 and len(mappings) == 5
     assert endpoints["lidar_stream.output"]["qos"]["reliability"] == "best_effort"
@@ -85,13 +78,9 @@ def test_valid_agent_overrides_and_binding_requirement_rejection() -> None:
         "      qos: {depth: 20}",
     )
     manifest = build_realization(resolve_agent(parse_agent_definition(source)))
-    temperature = next(
-        item for item in manifest.endpoints if item.id == "temperature.value"
-    )
+    temperature = next(item for item in manifest.endpoints if item.id == "temperature.value")
     assert temperature.name == "/native/temperature" and temperature.qos is not None
-    assert (
-        temperature.qos["depth"] == 20 and temperature.qos["durability"] == "volatile"
-    )
+    assert temperature.qos["depth"] == 20 and temperature.qos["durability"] == "volatile"
     source = SOURCE.read_text().replace(
         "overrides: {}",
         "overrides:\n    command.command:\n      qos: {reliability: best_effort}",
@@ -113,9 +102,7 @@ def test_valid_agent_overrides_and_binding_requirement_rejection() -> None:
         {"temperature.value": {"qos": {"durability": "transient_local"}}},
     ],
 )
-def test_invalid_override_acceptance(
-    override: dict[str, object], tmp_path: Path
-) -> None:
+def test_invalid_override_acceptance(override: dict[str, object], tmp_path: Path) -> None:
     definition = replace(load_agent_definition(SOURCE), ros2_overrides=override)
     resolution = resolve_agent(definition)
     write_artifacts(resolution, tmp_path)
@@ -139,10 +126,7 @@ def test_binding_owned_liveness_and_existing_interfaces_only(tmp_path: Path) -> 
     write_artifacts(resolution, tmp_path)
     manifest = json.loads(write_realization(resolution, tmp_path).read_bytes())
     assert len(manifest["endpoints"]) == 2
-    assert (
-        manifest["custom_interface_artifacts"] == {}
-        and manifest["custom_interfaces"] == []
-    )
+    assert manifest["custom_interface_artifacts"] == {} and manifest["custom_interfaces"] == []
     assert all(item["existing"] for item in manifest["endpoints"])
     assert not (tmp_path / "build/agents/native_only/interfaces").exists()
     sensor = next(item for item in manifest["bindings"] if item["id"] == "sensor")

@@ -6,7 +6,6 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-
 from agent_framework.definition.loader import load_agent_definition
 from agent_framework.generation.python import GenerationError, generate_python
 from agent_framework.resolution.artifacts import write_artifacts
@@ -206,3 +205,26 @@ def test_generated_writable_property(artifacts: Path) -> None:
     with module.Agent(instance_id="writable", runtime=WritableServices()) as agent:
         agent.temperature.set(12.5)
         assert agent.temperature.get(timeout=0) == 12.5
+
+
+def test_instance_contract_is_finalized_and_separate(tmp_path: Path) -> None:
+    result = resolve_agent(load_agent_definition(WORKSPACE / "agents/px4_agent/agent.yaml"))
+    path, _ = write_artifacts(result, tmp_path)
+    write_realization(result, tmp_path)
+    module = load_generated(generate_python(path.parent))
+    binding = next(item for item in module._SPEC.bindings if item.id == "arm")
+    original = dict(binding.configuration)
+    binding.validate_instance({"target_system": 2})
+    assert binding.configuration == original
+    assert binding.realization["instance_configuration_schema"]["fields"]["target_system"]
+    for values in (
+        {"target_system": 0},
+        {"target_system": 256},
+        {"target_system": True},
+        {"target_system": "2"},
+        {"liveness_owner": "application"},
+    ):
+        with pytest.raises(ValueError):
+            binding.validate_instance(values)
+    with pytest.raises(Exception, match="unknown binding instance"):
+        module.Agent(instance_id="bad", instance_configuration={"missing": {}})

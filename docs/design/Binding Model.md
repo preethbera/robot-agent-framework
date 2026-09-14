@@ -108,3 +108,25 @@ liveness_owner: binding | application
 ```
 
 If the binding owns a requirement, its internal communication may remain hidden from the Python API. If the application owns it, the requirement must appear in the Resolved Agent Model and later generated API.
+
+## v0.1.0 instance configuration
+
+`BindingDefinition.instance_configuration_schema` is a separate record of
+parameters explicitly allowed to vary per Agent instance. Its default is empty.
+It does not replace or merge into `configuration_schema` or build configuration.
+Provided values must match the declared schema; absent instance parameters leave
+binding-defined defaults in effect. Unknown binding aliases/keys and invalid
+values are errors before creating Agent resources.
+
+The ROS2 realization preserves this declaration per binding alias. Python
+generation compiles its validation into the generated runtime plan. Deployment
+provides `config.bindings.<exposure-alias>` values separately; factories receive
+`FactoryContext.instance_configuration` separately from `configuration`.
+No runtime discovery, resolution, realization or shared artifact mutation occurs.
+Instance parameters cannot influence semantic structure, Channels, endpoint
+kind/type/name/QoS, requirements, or any other finalized build decision.
+
+PX4 declares non-broadcast `target_system` and `target_component` (integers 1–255).
+An absent value retains the resolved binding target; an explicit instance target
+is used only when constructing native commands. `liveness_owner` remains solely
+build configuration because it changes Channels and responsibility ownership.

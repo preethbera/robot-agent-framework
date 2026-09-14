@@ -22,6 +22,11 @@
 !bindings/px4/README.md
 !bindings/px4/src/
 !bindings/px4/src/**
+!bindings/lidar/
+!bindings/lidar/pyproject.toml
+!bindings/lidar/README.md
+!bindings/lidar/src/
+!bindings/lidar/src/**
 **/__pycache__/
 **/*.py[cod]
 **/*.egg-info/

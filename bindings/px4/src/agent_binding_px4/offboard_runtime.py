@@ -54,9 +54,7 @@ class PositionComponent:
                 callback_group=self.context.services.group,
             )
             self.resources.append((native.node.destroy_subscription, subscription))
-        timer = native.node.create_timer(
-            0.1, self.tick, callback_group=self.context.services.group
-        )
+        timer = native.node.create_timer(0.1, self.tick, callback_group=self.context.services.group)
         self.resources.append((native.node.destroy_timer, timer))
         self.context.register(self.context.binding_id + ".setpoint", self.send)
         if self.context.configuration["liveness_owner"] == "application":
@@ -71,37 +69,24 @@ class PositionComponent:
         with self.lock:
             self.mode = int(message.nav_state)
             if self.operation and self.active_reported and self.mode != 14:
-                self.context.emit(
-                    self.context.binding_id + ".status", "inactive", self.operation
-                )
+                self.context.emit(self.context.binding_id + ".status", "inactive", self.operation)
                 self.stop(self.operation)
                 return
-            if (
-                self.operation
-                and self.sent_mode
-                and not self.active_reported
-                and self.mode == 14
-            ):
+            if self.operation and self.sent_mode and not self.active_reported and self.mode == 14:
                 self.active_reported = True
-                self.context.emit(
-                    self.context.binding_id + ".status", "active", self.operation
-                )
+                self.context.emit(self.context.binding_id + ".status", "active", self.operation)
 
     def send(self, value: Any, operation: Operation) -> None:
         with self.lock:
             assert self.native is not None
             if operation.transport.get(self.context.binding_id) == "stopped":
                 raise AgentError(FailureCode.CLOSED, "Offboard session has ended")
-            if not all(
-                math.isfinite(v) for v in (value.x, value.y, value.z, value.yaw)
-            ):
+            if not all(math.isfinite(v) for v in (value.x, value.y, value.z, value.yaw)):
                 raise ValueError("Position and yaw must be finite")
             if not -math.pi <= value.yaw <= math.pi:
                 raise ValueError("Yaw must be in [-pi, pi] radians")
             if not self.valid or monotonic() - self.position_time > 1.0:
-                raise AgentError(
-                    FailureCode.NOT_READY, "Fresh valid local position is required"
-                )
+                raise AgentError(FailureCode.NOT_READY, "Fresh valid local position is required")
             message = self.setpoint_type()
             message.timestamp = self.native.timestamp()
             message.position = [value.x, value.y, value.z]
@@ -121,9 +106,7 @@ class PositionComponent:
                 self.sent_mode = self.active_reported = False
                 operation.transport[self.context.binding_id] = "started"
                 operation.cleanup.append(lambda: self.stop(operation))
-                self.context.emit(
-                    self.context.binding_id + ".status", "warming_up", operation
-                )
+                self.context.emit(self.context.binding_id + ".status", "warming_up", operation)
             self.setpoint = message
             self.publisher.publish(message)
 
@@ -146,13 +129,9 @@ class PositionComponent:
     def pulse(self, value: object, operation: Operation) -> None:
         with self.lock:
             if self.operation is not operation:
-                raise AgentError(
-                    FailureCode.NOT_READY, "Send an initial position setpoint first"
-                )
+                raise AgentError(FailureCode.NOT_READY, "Send an initial position setpoint first")
             if monotonic() - self.last_pulse > 0.4:
-                error = AgentError(
-                    FailureCode.TIMEOUT, "Offboard heartbeat interrupted"
-                )
+                error = AgentError(FailureCode.TIMEOUT, "Offboard heartbeat interrupted")
                 operation.fail(error)
                 self.stop(operation)
                 raise error
@@ -179,41 +158,25 @@ class PositionComponent:
                 return
             if now >= operation.end or not self.valid or now - self.position_time > 1.0:
                 operation.fail(
-                    AgentError(
-                        FailureCode.TIMEOUT, "Offboard deadline/position expired"
-                    )
+                    AgentError(FailureCode.TIMEOUT, "Offboard deadline/position expired")
                 )
                 self.stop(operation)
                 return
-            if (
-                self.sent_mode
-                and not self.active_reported
-                and now - self.started_at > 7.0
-            ):
-                operation.fail(
-                    AgentError(FailureCode.TIMEOUT, "Offboard activation not observed")
-                )
+            if self.sent_mode and not self.active_reported and now - self.started_at > 7.0:
+                operation.fail(AgentError(FailureCode.TIMEOUT, "Offboard activation not observed"))
                 self.stop(operation)
                 return
             if self.sent_mode and now - self.last_heartbeat > 0.4:
-                operation.fail(
-                    AgentError(FailureCode.TIMEOUT, "Offboard heartbeat interrupted")
-                )
+                operation.fail(AgentError(FailureCode.TIMEOUT, "Offboard heartbeat interrupted"))
                 self.stop(operation)
                 return
             if self.context.configuration["liveness_owner"] == "binding":
                 self._heartbeat()
             elif now - self.last_pulse > 0.4:
-                operation.fail(
-                    AgentError(FailureCode.TIMEOUT, "Application liveness expired")
-                )
+                operation.fail(AgentError(FailureCode.TIMEOUT, "Application liveness expired"))
                 self.stop(operation)
                 return
-            if (
-                not self.sent_mode
-                and self.warmup_at is not None
-                and now - self.warmup_at >= 1.1
-            ):
+            if not self.sent_mode and self.warmup_at is not None and now - self.warmup_at >= 1.1:
                 assert self.command is not None
                 try:
                     self.command.send(176, (1.0, 6.0), operation, self.acknowledged)

@@ -36,9 +36,7 @@ def protocol_bindings(command: BindingDefinition) -> tuple[BindingDefinition, ..
                 if incoming == server
                 else Direction.CONSUMER_TO_AGENT,
                 schema=schema,
-                cardinality=Cardinality.STREAM
-                if part == "feedback"
-                else Cardinality.SINGLE,
+                cardinality=Cardinality.STREAM if part == "feedback" else Cardinality.SINGLE,
                 lifetime=Lifetime.INVOCATION,
                 purpose=purpose,
             )

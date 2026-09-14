@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import pytest
-
 from agent_framework.ros2.endpoints import parse_endpoint
 from agent_framework.ros2.errors import RealizationError
 from agent_framework.ros2.qos import parse_qos

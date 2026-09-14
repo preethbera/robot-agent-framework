@@ -141,13 +141,9 @@ def get_bindings() -> BindingPackage:
                 id="test.stream",
                 description="Continuous sensing",
                 primitive=Primitive.CAPABILITY,
-                default_semantics=_stream(
-                    {"max_rate_hz": 10.0, "liveness_owner": "binding"}
-                ),
+                default_semantics=_stream({"max_rate_hz": 10.0, "liveness_owner": "binding"}),
                 mandatory_requirements=BindingRequirements(
-                    channels=_stream(
-                        {"max_rate_hz": 10.0, "liveness_owner": "binding"}
-                    ).channels
+                    channels=_stream({"max_rate_hz": 10.0, "liveness_owner": "binding"}).channels
                 ),
                 configuration_schema=PayloadSchema(
                     kind=SchemaKind.RECORD,

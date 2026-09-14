@@ -40,9 +40,7 @@ def test_normal_wheels_discover_outside_workspace_without_yaml_or_ros(
         shutil.copytree(
             WORKSPACE / relative,
             source,
-            ignore=shutil.ignore_patterns(
-                "*.egg-info", "__pycache__", ".*cache", "build"
-            ),
+            ignore=shutil.ignore_patterns("*.egg-info", "__pycache__", ".*cache", "build"),
         )
         run(
             [
@@ -120,6 +118,4 @@ write_artifacts(resolve_agent(load_agent_definition(Path(sys.argv[1]))), Path(sy
         )
     for name in ("resolved_agent_model.json", "binding_lock.json"):
         relative = Path("build/agents/test_agent") / name
-        assert (outputs[0] / relative).read_bytes() == (
-            outputs[1] / relative
-        ).read_bytes()
+        assert (outputs[0] / relative).read_bytes() == (outputs[1] / relative).read_bytes()

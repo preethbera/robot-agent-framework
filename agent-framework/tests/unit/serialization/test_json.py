@@ -1,7 +1,6 @@
 from dataclasses import replace
 
 import pytest
-
 from agent_framework.model import PayloadSchema, Property, ScalarType, SchemaKind
 from agent_framework.serialization.hashing import artifact_hash, content_hash
 from agent_framework.serialization.json import canonical_json

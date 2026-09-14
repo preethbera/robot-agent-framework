@@ -19,9 +19,7 @@ from agent_px4_agent import (  # type: ignore[import-not-found]
 def until(condition: Callable[[], bool], timeout: float = 20.0) -> None:
     end = time.monotonic() + timeout
     while not condition():
-        assert time.monotonic() < end, (
-            "Observed state did not reach requested condition"
-        )
+        assert time.monotonic() < end, "Observed state did not reach requested condition"
         time.sleep(0.1)
 
 
@@ -71,9 +69,7 @@ def run(application_owned: bool = False) -> None:
         # additionally refuses control without fresh, valid position estimates.
         time.sleep(5)
         with agent.offboard.start() as session:
-            session.setpoint.send(
-                Payload_offboard_setpoint(x=0.0, y=0.0, z=-3.0, yaw=0.0)
-            )
+            session.setpoint.send(Payload_offboard_setpoint(x=0.0, y=0.0, z=-3.0, yaw=0.0))
             with liveness(
                 lambda: session.liveness.send(Payload_arm_request()), application_owned
             ) as begin_exit:

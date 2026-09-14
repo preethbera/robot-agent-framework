@@ -60,6 +60,9 @@ class BindingDefinition:
         default_factory=lambda: PayloadSchema(kind=SchemaKind.RECORD)
     )
     configuration_defaults: Mapping[str, object] = field(default_factory=dict)
+    instance_configuration_schema: PayloadSchema = field(
+        default_factory=lambda: PayloadSchema(kind=SchemaKind.RECORD)
+    )
     dependencies: tuple[str, ...] = ()
     ros2_template: Mapping[str, object] = field(default_factory=dict)
     configure_ros2: Callable[[Mapping[str, object]], Mapping[str, object]] | None = None
@@ -103,6 +106,9 @@ def validate_binding(definition: BindingDefinition) -> None:
         raise BindingError("direct bindings do not use a runtime factory")
     if definition.configuration_schema.kind is not SchemaKind.RECORD:
         raise BindingError("binding configuration must be a record")
+    if definition.instance_configuration_schema.kind is not SchemaKind.RECORD:
+        raise BindingError("instance configuration must be a record")
+    validate_schema(definition.instance_configuration_schema)
     validate_semantics(definition.default_semantics)
     validate_schema(definition.configuration_schema)
     for channel in definition.mandatory_requirements.channels:

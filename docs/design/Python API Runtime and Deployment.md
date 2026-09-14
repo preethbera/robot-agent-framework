@@ -97,16 +97,16 @@ instances:
     config:
       ros_namespace: /uav_01
       bindings:
-        px4:
-          instance: 1
+        arm:
+          target_system: 1
 
   - id: uav_02
     agent: inspection_uav
     config:
       ros_namespace: /uav_02
       bindings:
-        px4:
-          instance: 2
+        arm:
+          target_system: 2
 ```
 
 Binding-specific instance keys are validated by their binding packages. Generic deployment code must not hardcode PX4 fields.
@@ -129,3 +129,26 @@ Avoid global singleton Agent objects.
 Prototype v0 keeps ROS2 on the application machine/runtime environment.
 
 Future deployment independence may insert a remote transport boundary beneath the generated Agent API. Preserve this possibility, but do not implement gRPC or another remote protocol in Prototype v0 unless explicitly requested later.
+
+### Deployment implementation contract
+
+Instance parameters use the separate declaration described in `Binding Model.md`.
+Binding targets are resolved exposure aliases, not package names. The example
+above assumes an `arm` exposure. Configure each command exposure that requires a
+different native target; the framework does not infer PX4 grouping or semantics.
+
+Deployment loads generated packages from explicit build paths without changing
+`sys.path` or retaining private entries in `sys.modules`. Applications importing
+generated types can supply `agent_types={"definition_id": GeneratedAgent}` to
+Deployment, preserving nominal payload class identity. Private loading is useful
+for supervisors that only inspect Properties; generated payloads must come from
+the same generated module as their Agent constructor.
+
+All instances share one runtime. Cleanup visits instances in reverse creation
+order, including partial startup failure, before destroying owned infrastructure.
+
+Generated output Channels expose read-only `statistics` snapshots: current queue
+depth, dropped sample count, and last-read queue residence latency in seconds.
+Latency is unavailable until a read. This is runtime delivery instrumentation,
+not sensor acquisition latency or network/DDS loss accounting. Overflow preserves
+M4's explicit terminal failure and bounded storage behavior.

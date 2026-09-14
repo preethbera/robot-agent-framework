@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import pytest
-
 from agent_framework.runtime.agent import (
     AgentRuntime,
     AgentSpec,

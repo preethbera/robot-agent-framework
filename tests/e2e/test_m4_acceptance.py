@@ -97,9 +97,7 @@ def built_agents(
 
 
 @pytest.mark.parametrize("mode", ["direct", "factories", "protocols"])
-def test_real_ros2_acceptance(
-    built_agents: tuple[tuple[Path, ...], Path], mode: str
-) -> None:
+def test_real_ros2_acceptance(built_agents: tuple[tuple[Path, ...], Path], mode: str) -> None:
     packages, setup = built_agents
     environment = dict(os.environ)
     environment["ROS_LOCALHOST_ONLY"] = "1"
@@ -129,9 +127,7 @@ def test_real_ros2_acceptance(
 def test_application_import_boundary() -> None:
     source = (WORKSPACE / "tests/e2e/m4_application.py").read_text()
     tree = ast.parse(source)
-    imports = {
-        node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
-    }
+    imports = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
     imports.update(
         alias.name
         for node in ast.walk(tree)

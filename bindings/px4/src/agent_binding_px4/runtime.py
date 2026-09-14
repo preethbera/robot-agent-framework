@@ -27,9 +27,7 @@ class CommandComponent:
         assert self.client is not None
         key = self.context.binding_id
         if key in operation.transport:
-            raise AgentError(
-                FailureCode.BUSY, "Command already submitted for this invocation"
-            )
+            raise AgentError(FailureCode.BUSY, "Command already submitted for this invocation")
         parameters = self.command.parameters(value)
         self.client.send(
             self.command.command,

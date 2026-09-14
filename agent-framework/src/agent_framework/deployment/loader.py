@@ -26,6 +26,8 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
     if not isinstance(data, dict):
         raise DeploymentError("Deployment Specification must be a mapping")
 
+    if data.keys() - {"schema_version", "instances"}:
+        raise DeploymentError("unknown deployment fields")
     if data.get("schema_version") != "0.1.0":
         raise DeploymentError("unsupported deployment schema version")
 
@@ -38,6 +40,8 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
     for i, item in enumerate(instances_data):
         if not isinstance(item, dict):
             raise DeploymentError(f"instance at index {i} must be a mapping")
+        if item.keys() - {"id", "agent", "config"}:
+            raise DeploymentError("unknown instance fields")
         instance_id = item.get("id")
         if not isinstance(instance_id, str) or not re.fullmatch(
             r"[A-Za-z_][A-Za-z0-9_]*", instance_id
@@ -48,15 +52,21 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
         seen_ids.add(instance_id)
 
         agent_id = item.get("agent")
-        if not isinstance(agent_id, str) or not agent_id:
+        if not isinstance(agent_id, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", agent_id):
             raise DeploymentError(
                 f"instance '{instance_id}' has invalid or missing agent reference"
             )
 
-        if isinstance(item.get("config"), dict):
-            namespace = item["config"].get("ros_namespace", "")
-        else:
-            namespace = ""
+        config = item.get("config", {})
+        if not isinstance(config, dict) or config.keys() - {"ros_namespace", "bindings"}:
+            raise DeploymentError("invalid or unknown instance config fields")
+        bindings = config.get("bindings", {})
+        if not isinstance(bindings, dict) or any(
+            not isinstance(key, str) or not isinstance(value, dict)
+            for key, value in bindings.items()
+        ):
+            raise DeploymentError("config.bindings must map binding aliases to parameters")
+        namespace = config.get("ros_namespace", "")
         if not isinstance(namespace, str):
             raise DeploymentError(f"instance '{instance_id}' has invalid namespace")
 
@@ -65,6 +75,7 @@ def parse_deployment_spec(text: str) -> DeploymentSpec:
                 id=instance_id,
                 agent=agent_id,
                 namespace=namespace,
+                instance_configuration=bindings,
             )
         )
 

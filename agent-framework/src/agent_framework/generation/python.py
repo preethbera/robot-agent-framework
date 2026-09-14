@@ -128,7 +128,15 @@ class Types:
             value = f"float({value})"
         return [f"{target} = {value}"]
 
-    def validate(self, schema: dict[str, Any], value: str, hint: str, depth: int = 0) -> list[str]:
+    def validate(
+        self,
+        schema: dict[str, Any],
+        value: str,
+        hint: str,
+        depth: int = 0,
+        *,
+        mapping_record: bool = False,
+    ) -> list[str]:
         kind = schema["kind"]
         checks = []
         children: list[str] = []
@@ -155,11 +163,30 @@ class Types:
                     values = [base64.b64decode(item) for item in values]
                 checks.append(f"{value} in {values!r}")
         elif kind == "record":
-            checks.append(f"isinstance({value}, {self.type(schema, hint)})")
+            if mapping_record:
+                checks.append(f"isinstance({value}, Mapping)")
+                checks.append(f"not ({value}.keys() - set({tuple(sorted(schema['fields']))!r}))")
+            else:
+                checks.append(f"isinstance({value}, {self.type(schema, hint)})")
             for field, child in schema["fields"].items():
-                children.extend(
-                    self.validate(child, f"{value}.{identifier(field)}", hint + "_" + field, depth)
-                )
+                if mapping_record:
+                    children.append(f"if {field!r} in {value}:")
+                    children.extend(
+                        "    " + line
+                        for line in self.validate(
+                            child,
+                            f"{value}[{field!r}]",
+                            hint + "_" + field,
+                            depth,
+                            mapping_record=True,
+                        )
+                    )
+                else:
+                    children.extend(
+                        self.validate(
+                            child, f"{value}.{identifier(field)}", hint + "_" + field, depth
+                        )
+                    )
         elif kind in {"array", "sequence"}:
             checks.append(f"isinstance({value}, list)")
             if kind == "array":
@@ -168,7 +195,13 @@ class Types:
             children.append(f"for {variable} in {value}:")
             children.extend(
                 "    " + line
-                for line in self.validate(schema["items"], variable, hint + "_item", depth + 1)
+                for line in self.validate(
+                    schema["items"],
+                    variable,
+                    hint + "_item",
+                    depth + 1,
+                    mapping_record=mapping_record,
+                )
             )
         lines = [
             line
@@ -369,7 +402,7 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
                 )
             else:
                 members.append(
-                    f"        self.{member}: OutputChannel[{typ}] = OutputChannel(lambda timeout: cast({typ}, operation.read({channel_id!r}, timeout)))"  # noqa: E501
+                    f"        self.{member}: OutputChannel[{typ}] = OutputChannel(lambda timeout: cast({typ}, operation.read({channel_id!r}, timeout)), operation.buffers[{channel_id!r}].statistics)"  # noqa: E501
                 )
         base = "Session" if capability["execution"] == "session" else "Invocation"
         handles.append(
@@ -424,7 +457,7 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
             f"        self.{public[name]}: PropertyValue[{typ}] = "
             f"PropertyValue(lambda timeout: {expression}{writer})"
         )
-    bindings = []
+    bindings: list[str] = []
     for binding in manifest["bindings"]:
         relevant = {
             **binding,
@@ -439,13 +472,24 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
                 if owners[item["channel"]] == binding["id"]
             ],
         }
+        validator = f"_instance_{len(bindings)}"
+        schema = binding.get("instance_configuration_schema", {"kind": "record", "fields": {}})
+        validation = [
+            line.replace("invalid Channel payload", "invalid instance configuration")
+            for line in types.validate(schema, "values", validator, mapping_record=True)
+        ]
+        functions.append(
+            f"def {validator}(values: Mapping[str, object]) -> None:\n"
+            + "\n".join("    " + line for line in validation)
+        )
         bindings.append(
-            f"BindingSpec({binding['id']!r}, {binding['configuration']!r}, {relevant!r}, {binding['runtime_factory']!r})"  # noqa: E501
+            f"BindingSpec({binding['id']!r}, {binding['configuration']!r}, {relevant!r}, {binding['runtime_factory']!r}, {validator})"  # noqa: E501
         )
     metadata = {key: model[key] for key in ("description", "metadata", "groups", "constraints")}
     header = '''"""Generated Agent API, version 0.1.0. Do not edit."""
 from __future__ import annotations
 from dataclasses import dataclass
+from collections.abc import Mapping
 from typing import Any, cast
 from agent_framework.runtime.agent import (
     AgentRuntime, AgentSpec, BindingSpec, ChannelSpec, Codec, Operation, SharedServices,
@@ -475,8 +519,8 @@ from agent_framework.runtime.session import Session
     agent = (
         "class Agent(AgentRuntime):\n"
         + f"    metadata = {metadata!r}\n"
-        + "    def __init__(self, *, instance_id: str, namespace: str = '', runtime: SharedServices | None = None) -> None:\n"  # noqa: E501
-        "        super().__init__(_SPEC, instance_id=instance_id, namespace=namespace, runtime=runtime)\n"  # noqa: E501
+        + "    def __init__(self, *, instance_id: str, namespace: str = '', runtime: SharedServices | None = None, instance_configuration: Mapping[str, Mapping[str, object]] | None = None) -> None:\n"  # noqa: E501
+        "        super().__init__(_SPEC, instance_id=instance_id, namespace=namespace, runtime=runtime, instance_configuration=instance_configuration)\n"  # noqa: E501
          + "\n".join(assignments) + "\n"
     )
     return "\n\n".join([header, *types.definitions, *functions, plan, *handles, agent])

@@ -90,6 +90,7 @@ def context(monkeypatch: pytest.MonkeyPatch) -> Any:
     senders: dict[str, Any] = {}
     return NS(
         binding_id="control",
+        instance_configuration={},
         configuration={
             "target_system": 1,
             "target_component": 1,
@@ -122,9 +123,7 @@ def test_command_ack_is_separate_and_no_force_arm(context: Any) -> None:
     assert not node.entities
 
 
-def test_command_late_ack_and_bounded_lane(
-    context: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_command_late_ack_and_bounded_lane(context: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     component = runtime.create_command(context)
     component.start()
     operation: Any = Operation()
@@ -230,9 +229,7 @@ def test_late_first_pulse_still_requires_full_warmup(
     component.close()
 
 
-def test_late_pulse_cannot_hide_expiry(
-    context: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_late_pulse_cannot_hide_expiry(context: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     clock = [0.0]
     monkeypatch.setattr(offboard_runtime, "monotonic", lambda: clock[0])
     context.configuration["liveness_owner"] = "application"
@@ -279,3 +276,13 @@ def test_exclusive_control_and_publish_failure_cleanup(
     first.close()
     second.close()
     assert not context.services.node.entities
+
+
+def test_instance_target_does_not_mutate_build_configuration(context: Any) -> None:
+    context.instance_configuration = {"target_system": 2}
+    component = runtime.create_command(context)
+    component.start()
+    context.senders["control.request"](NS(), Operation())
+    assert context.services.node.requests[-1].request.target_system == 2
+    assert context.configuration["target_system"] == 1
+    component.close()

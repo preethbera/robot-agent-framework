@@ -10,12 +10,13 @@ expose:
   - {use: px4.flight_mode, as: flight_mode}
   - {use: px4.arm, as: arm}
   - {use: px4.disarm, as: disarm}
+  - {use: px4.hold, as: hold}
+  - {use: px4.offboard.position, as: offboard}
   - {use: px4.land, as: land}
   - {use: px4.orbit, as: orbit}
   - {use: lidar.status, as: lidar_status}
-  - {use: lidar.performance, as: lidar_performance}
   - {use: lidar.scan, as: scan}
 groups:
   - id: sensor_suite
     description: Mixed sensor group
-    members: [lidar_status, lidar_performance, scan]
+    members: [lidar_status, scan]

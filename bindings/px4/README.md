@@ -94,3 +94,10 @@ docker run --rm --mount type=bind,source="$PWD",target=/workspace/project \
 The test environment disables RC input and data-link-loss action only in its
 isolated SIH process. The binding itself does not change these parameters. Tests
 exercise actual firmware with both liveness ownership configurations.
+
+
+Deployment may provide `config.bindings.<exposure-alias>.target_system` and
+`target_component` as integers 1–255. These are separately validated instance
+parameters; they do not mutate the resolved build configuration. Omitted values
+retain the resolved target. Other fields (including `liveness_owner`) cannot be
+changed per instance. `deployments/sensor_demo.yaml` demonstrates system 2.

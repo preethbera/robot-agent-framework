@@ -3,7 +3,6 @@
 from typing import cast
 
 import pytest
-
 from agent_framework.model import (
     PayloadSchema,
     ScalarType,
