@@ -142,3 +142,12 @@ checkpoint commit.
 - Ruff lint, Ruff format, and strict mypy: all clean across 96 source files.
 - Generated API typing: clean (strict mypy, 1 source file).
 - M5 acceptance: **passed**.
+
+
+## M5–M7 review regression
+
+`846c357` adds separately validated per-instance native command targets, preserving
+resolved build configuration and existing PX4 sequencing/liveness behavior.
+Rebuilt pinned-image regressions: **347 passed, zero skips** (102.01 seconds),
+including both original M5 full-flight scenarios and combined M7 system-2 control
+with LiDAR streaming. Lint, formatting and strict typing passed. Version `0.1.0`.

@@ -1,29 +1,29 @@
-# M7 Progress: Independent Sensor Capability and Supervisor Demo
+# M7 review progress
 
-## Status
-Completed.
+Version `0.1.0`. Review corrections complete. Acceptance and regressions passed.
 
-## Implementation Details
-- Created a bare-minimum LiDAR sensor binding in `project/bindings/lidar/`.
-- Implemented sensor acquisition as `lidar.scan` Capability (continuous high-bandwidth output Channel).
-- Implemented sensor status as `lidar.status` Property (health/status Property).
-- Implemented performance instrumentation for latency, queue depth, and dropped samples using `lidar.performance` Property mapping to `geometry_msgs/msg/Vector3`.
-- Created Agent Definition `supervisor` exposing `px4` state/commands and `lidar` sensors/capabilities.
-- Combined LiDAR sensors/capabilities into a mixed Group `sensor_suite`.
-- Created Deployment Specification `supervisor.yaml` running multiple agent instances.
-- Wrote M7 acceptance test `tests/e2e/test_m7_acceptance.py` to validate:
-    - Docker environment reproducibly starts.
-    - Resolution and realization produce expected artifacts.
-    - Python API is successfully generated.
-    - External bindings are discovered externally.
-    - `lidar.scan` streams data via continuous Channel.
-    - Application source contains no direct ROS2 or PX4 APIs.
-    - Multiple heterogeneous agent instances run without framework-core changes.
+- Independent LiDAR package remains direct, with no sensor implementation in PX4
+  or framework core. Invalid status bytes/values fail instead of reporting health.
+- Removed fabricated Vector3 performance Property and per-message dynamic class.
+  Actual bounded Channel queues now expose depth, drops and measured residence
+  latency. No invented source-latency or DDS-loss claims.
+- Sensor Agent is consistently named `sensor_drone`, deployment `sensor_demo.yaml`.
+  Its mixed Group contains status Property and scan Capability.
+- Combined acceptance uses real pinned PX4 SIH SITL system 2, generated API arm /
+  observable armed state / disarm, plus two independent native ROS2 sensor streams
+  (4096 ranges at 20 Hz each), deliberate overflow and recovery in a new session.
+  ROS2 source fixture is separate from the application; no sensor/PX4 imports in
+  application code. Target 2 is separately supplied through deployment.
+- SITL rcS sets MAV_SYS_ID from the process instance **after** environment parameter
+  overrides; test therefore uses `px4 -i 1`, not PX4_PARAM_MAV_SYS_ID.
+- Optional PX4 image installs LiDAR independently; its check verifies installation. README/typing marker added.
+  Full combined check is mandatory in that environment; generic runs explicitly
+  skip SITL and make no claim of full M7 acceptance.
 
-## Framework Changes
-None. M7 was implemented as a thin binding/demo layer on top of existing architecture per Ponytail principles (simplest solution, do less).
+## Final review checkpoint
 
-## Verification Results
-- `docker/check.sh` passes successfully across all unit, integration, and end-to-end tests.
-- `test_m7_acceptance.py` dynamically resolves and validates the supervisor agent deployments when the required dependencies (PX4 msgs) are available in the container environment.
-- M7 acceptance effectively verifies that multi-agent heterogeneous workloads with overlapping external bindings function perfectly over the generated Python abstractions.
+Implementation: `846c357`. Rebuilt pinned optional image: **347 passed, zero
+skips**, 102.01 seconds. Ruff/format clean; strict mypy clean across 109 source
+files. Generated combined API strict typing passed. Generic ROS2 validation:
+**344 passed, 3 explicit SITL skips**. Local framework/PX4/LiDAR wheel builds passed.
+See `M5_M7_REVIEW.md` for audit details and instrumentation scope. No blockers.

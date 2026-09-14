@@ -1,19 +1,25 @@
-# M6 Progress
+# M6 review progress
 
-## Status
-- **Completed**: Multi-Agent Deployment implementation.
+Version `0.1.0`. Review corrections complete. Acceptance and regressions passed.
 
-## Accomplishments
-- Created `DeploymentError` for robust failure handling.
-- Modeled `AgentInstance` and `DeploymentSpec` dataclasses.
-- Implemented `parse_deployment_spec` and `load_deployment_spec` for safe YAML 1.2 parsing and validation of deployment configurations.
-- Extended `AgentRuntime.__init__` and `generation/python.py` generated `Agent` to accept optional `instance_config` overrides.
-- Extended `BindingDefinition` and `BindingSpec` with `runtime_parameters` to isolate build-time vs runtime variables.
-- Updated `Runtime.create_component` in `ros2/runtime.py` to enforce that deployment overrides only mutate explicitly declared runtime parameters.
-- Implemented dynamic instance creation and the `Deployment` registry in `agent_framework/deployment`.
-- Validated via unit tests for `loader.py`.
-- Developed acceptance testing using `minimal_agent` and `test_agent` for heterogeneous coexistence and multi-instance namespace/state isolation within a shared runtime context.
-- Passed full static checks (ruff, mypy) and full pytest suite execution.
+- Restored per-instance parameters as a **separate** binding declaration and
+  finalized/generated validator. No merging into BindingSpec configuration.
+- Strict deployment keys, binding alias and value validation; PX4 target-system
+  example leaves build-time semantics and realization unchanged.
+- Generated packages load by explicit path without modifying sys.path or retaining
+  private module-cache entries. Explicit Agent factories preserve application
+  payload identity for statically imported generated APIs.
+- Deployment cleanup now reverses creation order, including startup rollback.
+- Tests cover two build roots, unchanged import state, repeated shutdown, partial
+  failure, configuration rejection, and real simultaneous ROS2 data paths for two
+  same-definition instances and one heterogeneous instance.
+- Focused ROS2 isolation acceptance passed. Final regression evidence will be
+  recorded in M5_M7_REVIEW.md.
 
-## Next Steps
-- Transition to M7 if required. M6 is complete and self-contained at v0.1.0 boundary.
+## Final review checkpoint
+
+Implementation: `846c357`. Rebuilt pinned optional image: **347 passed, zero
+skips**, 102.01 seconds. Ruff/format clean; strict mypy clean across 109 source
+files. Generated combined API strict typing passed. Generic ROS2 validation:
+**344 passed, 3 explicit SITL skips**. Local framework/PX4/LiDAR wheel builds passed.
+See `M5_M7_REVIEW.md` for audit details and instrumentation scope. No blockers.
