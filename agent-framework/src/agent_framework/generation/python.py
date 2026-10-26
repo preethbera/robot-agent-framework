@@ -161,7 +161,14 @@ class Types:
                 values = schema["values"]
                 if scalar == "bytes":
                     values = [base64.b64decode(item) for item in values]
-                checks.append(f"{value} in {values!r}")
+                if (
+                    len(values) > 4
+                    and scalar.startswith(("int", "uint"))
+                    and list(values) == list(range(min(values), max(values) + 1))
+                ):
+                    checks.append(f"{min(values)} <= {value} <= {max(values)}")
+                else:
+                    checks.append(f"{value} in {values!r}")
         elif kind == "record":
             if mapping_record:
                 checks.append(f"isinstance({value}, Mapping)")
@@ -457,6 +464,20 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
             f"        self.{public[name]}: PropertyValue[{typ}] = "
             f"PropertyValue(lambda timeout: {expression}{writer})"
         )
+    def _clean_schema(s: Any) -> Any:
+        if not isinstance(s, dict):
+            return s
+        res = dict(s)
+        if res.get("kind") == "enum" and len(res.get("values", ())) > 4:
+            vals = res["values"]
+            if res.get("scalar_type", "").startswith(("int", "uint")) and list(vals) == list(
+                range(min(vals), max(vals) + 1)
+            ):
+                res["values"] = []
+        if "fields" in res and isinstance(res["fields"], dict):
+            res["fields"] = {k: _clean_schema(v) for k, v in res["fields"].items()}
+        return res
+
     bindings: list[str] = []
     for binding in manifest["bindings"]:
         relevant = {
@@ -472,6 +493,10 @@ def render(model: dict[str, Any], manifest: dict[str, Any]) -> str:
                 if owners[item["channel"]] == binding["id"]
             ],
         }
+        if "instance_configuration_schema" in relevant:
+            relevant["instance_configuration_schema"] = _clean_schema(
+                relevant["instance_configuration_schema"]
+            )
         validator = f"_instance_{len(bindings)}"
         schema = binding.get("instance_configuration_schema", {"kind": "record", "fields": {}})
         validation = [
@@ -504,15 +529,18 @@ from agent_framework.runtime.session import Session
 '''
     plan = (
         "_SPEC = AgentSpec(\n"
-        + f"    {model['id']!r},\n    ("
-        + ",".join(plans)
-        + ("," if plans else "")
-        + "),\n    ("
-        + ",".join(codecs)
-        + ("," if codecs else "")
-        + "),\n    ("
-        + ",".join(bindings)
-        + ("," if bindings else "")
+        + f"    {model['id']!r},\n"
+        + "    (\n        "
+        + ",\n        ".join(plans)
+        + (",\n    " if plans else "")
+        + "),\n"
+        + "    (\n        "
+        + ",\n        ".join(codecs)
+        + (",\n    " if codecs else "")
+        + "),\n"
+        + "    (\n        "
+        + ",\n        ".join(bindings)
+        + (",\n    " if bindings else "")
         + "),\n"
         + f"    {tuple(manifest['endpoints'])!r},\n    {metadata!r},\n)\n"
     )
@@ -527,7 +555,7 @@ from agent_framework.runtime.session import Session
 
 
 def generate_python(directory: Path) -> Path:
-    """Generate only from matching M2/M3 artifacts in an Agent build directory."""
+    """Generate only from matching resolved model and ROS2 realization artifacts in an Agent build directory."""
     model, manifest = load_artifacts(directory)
     try:
         source = render(model, manifest)

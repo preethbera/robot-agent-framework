@@ -1,4 +1,4 @@
-"""Public build-time ROS2 realization API; runtime support belongs to M4."""
+"""Public build-time ROS2 realization API."""
 
 from .builder import build_realization, write_realization
 from .errors import RealizationError

@@ -1,4 +1,4 @@
-"""Additional external protocol fixtures for M4 transport coverage."""
+"""Additional external protocol fixtures for ROS2 transport coverage."""
 
 from copy import deepcopy
 from dataclasses import replace

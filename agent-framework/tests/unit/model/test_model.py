@@ -1,4 +1,4 @@
-"""Required M1 scenarios and validation of complete semantic graphs."""
+"""Semantic model scenarios and validation of complete semantic graphs."""
 
 from dataclasses import replace
 from typing import cast

@@ -1,4 +1,4 @@
-"""Verify the installation boundary and the distributable M0 skeleton."""
+"""Verify the installation boundary and the distributable framework package."""
 
 import os
 import shutil

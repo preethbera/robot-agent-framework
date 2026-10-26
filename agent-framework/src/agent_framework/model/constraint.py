@@ -48,7 +48,7 @@ class Constraint:
 def validate_constraint(constraint: Constraint) -> None:
     """Check structure; Agent validation checks that the target exists.
 
-    Parameter interpretation is not specified by M1. Preserve it as declarative
+    Parameter interpretation belongs to resolution. Preserve it as declarative
     data rather than inventing precondition or mutual-exclusion expression syntax.
     """
     _validate_id(constraint.id, "constraint")

@@ -1,4 +1,4 @@
-"""Write only deterministic M2 model/lock artifacts beneath the workspace build tree."""
+"""Write only deterministic resolved model/lock artifacts beneath the workspace build tree."""
 
 import os
 import tempfile

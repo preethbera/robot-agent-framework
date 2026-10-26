@@ -23,6 +23,7 @@ agent_framework = ["py.typed"]
 [tool.pytest.ini_options]
 minversion = "8.4"
 testpaths = ["tests"]
+cache_dir = "/tmp/.pytest_cache"
 addopts = "--import-mode=importlib --strict-config --strict-markers"
 filterwarnings = ["error"]
 
@@ -37,3 +38,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
+cache_dir = "/tmp/.mypy_cache"

@@ -88,9 +88,9 @@ def test_unknown_override_target(target: str) -> None:
         build_realization(resolution(overrides={target: {"name": "/changed"}}))
 
 
-def test_deterministic_writer_checks_m2_inputs(tmp_path: Path) -> None:
+def test_deterministic_writer_checks_resolved_inputs(tmp_path: Path) -> None:
     result = resolution(overrides={"temperature.native": {"name": "/native/value"}})
-    with pytest.raises(RealizationError, match="M2 artifact"):
+    with pytest.raises(RealizationError, match="resolved artifact"):
         write_realization(result, tmp_path)
     write_artifacts(result, tmp_path)
     path = write_realization(result, tmp_path)

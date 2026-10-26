@@ -17,11 +17,13 @@ from agent_framework.serialization.hashing import content_hash
 from agent_framework.serialization.json import canonical_json
 
 WORKSPACE = Path(__file__).resolve().parents[4]
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
 @pytest.fixture
 def artifacts(tmp_path: Path) -> Path:
-    result = resolve_agent(load_agent_definition(WORKSPACE / "agents/test_agent/agent.yaml"))
+    fixture = (FIXTURES / "agents/test_agent/agent.yaml") if (FIXTURES / "agents/test_agent/agent.yaml").exists() else (WORKSPACE / "agents/test_agent/agent.yaml")
+    result = resolve_agent(load_agent_definition(fixture))
     path, _ = write_artifacts(result, tmp_path)
     write_realization(result, tmp_path)
     return path.parent
@@ -208,7 +210,8 @@ def test_generated_writable_property(artifacts: Path) -> None:
 
 
 def test_instance_contract_is_finalized_and_separate(tmp_path: Path) -> None:
-    result = resolve_agent(load_agent_definition(WORKSPACE / "agents/px4_agent/agent.yaml"))
+    fixture = (FIXTURES / "agents/px4_agent/agent.yaml") if (FIXTURES / "agents/px4_agent/agent.yaml").exists() else (WORKSPACE / "agents/px4_agent/agent.yaml")
+    result = resolve_agent(load_agent_definition(fixture))
     path, _ = write_artifacts(result, tmp_path)
     write_realization(result, tmp_path)
     module = load_generated(generate_python(path.parent))

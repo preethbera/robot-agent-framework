@@ -1,4 +1,4 @@
-"""Build-time ROS2 interface introspection.
+"""Reserved build-time ROS2 interface introspection boundary.
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
+Native interface introspection is not implemented.
 """

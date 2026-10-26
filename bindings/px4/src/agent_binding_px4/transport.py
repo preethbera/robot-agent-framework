@@ -104,9 +104,12 @@ class CommandClient:
         self.lock = RLock()
         self.pending: tuple[Any, Operation, float] | None = None
         self.closed = False
-        self.timer = native.node.create_timer(
-            0.05, self.check, callback_group=self.context.services.group
-        )
+        self.timer: Any = None
+
+    def _stop_timer(self) -> None:
+        if self.timer is not None:
+            self.native.node.destroy_timer(self.timer)
+            self.timer = None
 
     def send(
         self,
@@ -151,6 +154,10 @@ class CommandClient:
                 ) = padded
                 future = self.client.call_async(request)
                 self.pending = future, operation, min(operation.end, monotonic() + 5.0)
+                if self.timer is None:
+                    self.timer = self.native.node.create_timer(
+                        0.05, self.check, callback_group=self.context.services.group
+                    )
             except Exception:
                 self.lane.release()
                 raise
@@ -160,6 +167,7 @@ class CommandClient:
                     if self.pending is None or self.pending[0] is not result:
                         return
                     self.pending = None
+                    self._stop_timer()
                     try:
                         reply = result.result().reply
                         if reply.command != command:
@@ -178,10 +186,12 @@ class CommandClient:
     def check(self) -> None:
         with self.lock:
             if self.pending is None:
+                self._stop_timer()
                 return
             future, operation, end = self.pending
             if operation.closed or monotonic() >= end:
                 self.pending = None
+                self._stop_timer()
                 self.lane.release(uncertain=True)
                 self.client.remove_pending_request(future)
                 future.cancel()
@@ -204,5 +214,5 @@ class CommandClient:
                 self.lane.release(uncertain=True)
                 self.client.remove_pending_request(future)
                 future.cancel()
-            self.native.node.destroy_timer(self.timer)
+            self._stop_timer()
             self.native.node.destroy_client(self.client)

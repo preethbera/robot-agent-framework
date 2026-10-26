@@ -3,12 +3,19 @@
 This independently installable distribution exposes `agent_framework` using a
 `src/` layout. Its version has one source: `[project].version` in `pyproject.toml`.
 Read the installed version with `importlib.metadata.version("agent-framework")`.
-There are no runtime dependencies at M0.
+The core distribution declares no required pip dependencies. YAML parsing uses
+the optional `build` extra; live communication requires the external ROS2 environment.
 
-M1 implements the technology-independent model in `model/`. M2 implements
-`binding/`, `definition/`, `resolution/`, and `serialization/`; other modules retain
-their boundaries for later milestones. Bindings remain independent distributions in the peer
-`bindings/` directory and will be discovered through installed entry points.
+`model/` describes Agent semantics. `definition/` parses Agent YAML, `binding/`
+discovers installed providers, and `resolution/` combines their declarations into
+a resolved model. `serialization/` writes deterministic artifacts. `ros2/` builds
+and executes the native communication plan; `generation/` creates the typed Python
+API. `runtime/` manages properties, operations, channels, and cleanup, while
+`deployment/` creates multiple instances sharing one runtime.
+
+Bindings are independent distributions in the peer `bindings/` directory,
+discovered through installed entry points. Read the
+[guided code walkthrough](../code-walkthrough/README.md) for the complete flow.
 
 Use the development container and commands in the [workspace README](../README.md).
 Within an environment containing the pinned development tools, install and check
@@ -25,7 +32,7 @@ python -m mypy src/agent_framework tests
 Do not set `PYTHONPATH` to `src/`. Packaging tests build and install a wheel into a
 clean environment, and check that an uninstalled checkout cannot supply imports.
 
-## Core model (M1)
+## Core model
 
 `agent_framework.model` exposes Agent, Property, Capability, Channel, Constraint,
 Group, and PayloadSchema, their supporting enums, and explicit `validate_*`
@@ -37,7 +44,7 @@ Agent holds Channels; Properties and Capabilities reference those Channels by ID
 Groups contain mixed Property/Capability IDs and references to nested Groups.
 ConstraintTarget uses a typed element reference and an optional tuple of nested
 record field names for Property/Channel payload fields. These are internal Python
-structures; M1 does not define or change any serialized Agent Definition grammar.
+structures, separate from the serialized Agent Definition grammar.
 Constraint parameters are preserved without inventing an expression language.
 
 PayloadSchema describes scalars, records, arrays, sequences, enums, and opaque
@@ -50,7 +57,7 @@ Mappings and payload values remain caller-owned: frozen dataclasses do not deep
 freeze those containers. Finish assembling them before validation and revalidate
 after any edits. Opaque payloads are neither inspected nor copied by the model.
 
-## Binding and resolution (M2)
+## Binding and resolution
 
 Binding API `0.1.0` providers register in `agent_framework.bindings`. The entry-point
 name supplies the namespace (`test` for `test.temperature`), and its zero-argument

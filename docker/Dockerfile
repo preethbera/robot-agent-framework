@@ -4,15 +4,15 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Resolve the only additional OS dependency against a fixed Ubuntu snapshot.
 # The ROS installation is already supplied by the immutable base image.
-COPY docker/ubuntu.sources /etc/apt/m0-ubuntu.sources
-RUN apt-get -o Dir::Etc::sourcelist=/etc/apt/m0-ubuntu.sources \
+COPY docker/ubuntu.sources /etc/apt/project-ubuntu.sources
+RUN apt-get -o Dir::Etc::sourcelist=/etc/apt/project-ubuntu.sources \
         -o Dir::Etc::sourceparts=- update \
-    && apt-get -o Dir::Etc::sourcelist=/etc/apt/m0-ubuntu.sources \
+    && apt-get -o Dir::Etc::sourcelist=/etc/apt/project-ubuntu.sources \
         -o Dir::Etc::sourceparts=- install -y --no-install-recommends python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Existing standard action interfaces used by the real M4 transport tests.
-ARG ROS_EXAMPLE_INTERFACES_VERSION=0.12.1-1noble.20260902.030327
+# Existing standard action interfaces used by the real ROS2 transport tests.
+ARG ROS_EXAMPLE_INTERFACES_VERSION=0.12.1-1noble.20260911.054159
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         "ros-jazzy-example-interfaces=${ROS_EXAMPLE_INTERFACES_VERSION}" \
@@ -21,6 +21,7 @@ RUN apt-get update \
 ENV VIRTUAL_ENV=/opt/agent-framework-venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}" \
     HOME=/home/developer \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -32,9 +33,13 @@ RUN python -m pip install --require-hashes -r /opt/requirements-dev.txt
 
 WORKDIR /workspace/project
 COPY agent-framework/ agent-framework/
-COPY bindings/test/ bindings/test/
+COPY bindings/ bindings/
 RUN python -m pip install --no-build-isolation --no-deps -e ./agent-framework \
-    && python -m pip install --no-build-isolation --no-deps -e ./bindings/test \
+    && for binding in ./bindings/*/; do \
+        if [ -f "${binding}pyproject.toml" ]; then \
+            python -m pip install --no-build-isolation --no-deps -e "$binding"; \
+        fi; \
+    done \
     && python -m pip check
 
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/project-entrypoint

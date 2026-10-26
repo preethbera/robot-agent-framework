@@ -1,4 +1,4 @@
 """Framework command entry points.
 
-M0 reserves this module boundary; implementation belongs to a later milestone.
+This module reserves the command entry-point boundary; commands are not implemented.
 """

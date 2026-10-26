@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools==79.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-binding-ardupilot"
+version = "0.1.0"
+description = "Modular ArduPilot integration for the Agent framework"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["agent-framework==0.1.0"]
+
+[project.entry-points."agent_framework.bindings"]
+ardupilot = "agent_binding_ardupilot:get_bindings"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_binding_ardupilot = ["py.typed"]
+

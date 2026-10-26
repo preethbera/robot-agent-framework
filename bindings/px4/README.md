@@ -84,7 +84,7 @@ position session refreshes its one cached target alongside proof of life, so its
 timestamp remains valid when PX4 activates position control after mode entry or
 arming. This follows the pinned controller's activation timestamp check.
 
-Run the full M5 checks in the optional image with the workspace mounted:
+Run the full PX4 checks in the optional image with the workspace mounted:
 
 ```sh
 docker run --rm --mount type=bind,source="$PWD",target=/workspace/project \

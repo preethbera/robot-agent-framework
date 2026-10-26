@@ -141,7 +141,7 @@ def artifact_directory(resolution: Resolution, workspace: Path) -> Path:
 
 
 def write_realization(resolution: Resolution, workspace: Path) -> Path:
-    """Verify persisted M2 inputs, then write custom files and publish the manifest last."""
+    """Verify persisted resolved model and binding lock, then write custom files and publish the manifest last."""
     directory = artifact_directory(resolution, workspace)
     for name, expected in (
         ("resolved_agent_model.json", resolved_model_data(resolution)),
@@ -150,9 +150,9 @@ def write_realization(resolution: Resolution, workspace: Path) -> Path:
         try:
             content = (directory / name).read_bytes()
         except OSError as error:
-            raise RealizationError(f"missing/unreadable M2 artifact {name}") from error
+            raise RealizationError(f"missing/unreadable resolved artifact {name}") from error
         if content != canonical_json(expected):
-            raise RealizationError(f"M2 artifact {name} does not match supplied resolution")
+            raise RealizationError(f"resolved artifact {name} does not match supplied resolution")
     manifest = build_realization(resolution)
     payloads = {
         name: content.encode("utf-8")

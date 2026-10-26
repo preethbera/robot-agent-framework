@@ -1,4 +1,4 @@
-"""Small external code-backed component used by M4 integration tests."""
+"""Small external code-backed component used by transport integration tests."""
 
 from typing import Any
 

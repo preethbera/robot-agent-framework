@@ -1,1 +1,1 @@
-"""Agent framework package; functionality is introduced by milestone."""
+"""Generic robotics Agent framework package."""
