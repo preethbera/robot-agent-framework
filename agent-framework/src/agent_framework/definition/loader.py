@@ -12,13 +12,30 @@ MAX_DEFINITION_BYTES = 1_048_576
 
 def parse_agent_definition(text: str) -> AgentDefinition:
     # Lazy dependency keeps installation/import of core semantics ROS/YAML-free.
-    from ruamel.yaml import YAML
-    from ruamel.yaml.error import YAMLError
-    from ruamel.yaml.events import CollectionEndEvent, CollectionStartEvent, DocumentStartEvent
+    try:
+        from ruamel.yaml import YAML
+        from ruamel.yaml.error import YAMLError
+        from ruamel.yaml.events import CollectionEndEvent, CollectionStartEvent, DocumentStartEvent
+
+        use_ruamel = True
+    except ModuleNotFoundError:
+        import yaml
+
+        use_ruamel = False
 
     encoded = text.encode("utf-8")
     if len(encoded) > MAX_DEFINITION_BYTES:
         raise DefinitionError("Agent Definition exceeds 1 MiB")
+
+    if not use_ruamel:
+        try:
+            document = yaml.safe_load(text)
+        except Exception as error:
+            raise DefinitionError(f"invalid YAML definition: {error}") from error
+        if not isinstance(document, dict):
+            raise DefinitionError("definition must be a mapping")
+        return parse_structure(document, sha256(encoded).hexdigest())
+
     yaml = YAML(typ="safe", pure=True)
     yaml.version = (1, 2)
     yaml.allow_duplicate_keys = False

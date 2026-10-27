@@ -1,7 +1,7 @@
 """Agent Definition -> Resolved Agent Model, without ROS2 materialization."""
 
 from dataclasses import dataclass, replace
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
 from agent_framework.binding.definition import (
     BindingDefinition,
@@ -124,13 +124,17 @@ def resolve_agent(definition: AgentDefinition) -> Resolution:
         validate_agent(agent)
     except ValueError as error:
         raise ResolutionError(str(error)) from error
+    try:
+        fw_version = version("agent-framework")
+    except PackageNotFoundError:
+        fw_version = "0.1.0"
     return Resolution(
         agent=agent,
         definition=definition,
         bindings=tuple(selected),
         binding_lock={
             "schema_version": "0.1.0",
-            "framework_version": version("agent-framework"),
+            "framework_version": fw_version,
             "agent_definition_schema_version": definition.schema_version,
             "agent_definition_content_hash": definition.source_hash,
             "bindings": {

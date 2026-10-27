@@ -44,6 +44,21 @@ class PositionComponent:
         self.control_lane = lane_for(self.context.services.runtime, "offboard:" + name)
         self.heartbeat = native.node.create_publisher(self.heartbeat_type, name, qos)
         self.resources.append((native.node.destroy_publisher, self.heartbeat))
+
+        # Reusable in-place messages for zero-allocation streaming
+        self._cached_setpoint = self.setpoint_type()
+        self._cached_setpoint.position = [0.0, 0.0, 0.0]
+        self._cached_setpoint.velocity = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.acceleration = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.jerk = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.yawspeed = math.nan
+
+        self._cached_heartbeat = self.heartbeat_type()
+        self._cached_heartbeat.position = True
+        self._cached_heartbeat.velocity = False
+        self._cached_heartbeat.acceleration = False
+        self._cached_heartbeat.attitude = False
+        self._cached_heartbeat.body_rate = False
         for endpoint, callback in (("position", self.position), ("state", self.state)):
             interface, name, qos = native.entity(endpoint)
             subscription = native.node.create_subscription(
@@ -87,14 +102,12 @@ class PositionComponent:
                 raise ValueError("Yaw must be in [-pi, pi] radians")
             if not self.valid or monotonic() - self.position_time > 1.0:
                 raise AgentError(FailureCode.NOT_READY, "Fresh valid local position is required")
-            message = self.setpoint_type()
+            message = self._cached_setpoint
             message.timestamp = self.native.timestamp()
-            message.position = [value.x, value.y, value.z]
-            message.velocity = [math.nan] * 3
-            message.acceleration = [math.nan] * 3
-            message.jerk = [math.nan] * 3
+            message.position[0] = value.x
+            message.position[1] = value.y
+            message.position[2] = value.z
             message.yaw = value.yaw
-            message.yawspeed = math.nan
             if self.operation is not operation:
                 if self.operation is not None:
                     raise AgentError(FailureCode.BUSY, "Offboard session still active")
@@ -112,13 +125,12 @@ class PositionComponent:
 
     def _heartbeat(self) -> None:
         assert self.native is not None
-        message = self.heartbeat_type()
+        message = self._cached_heartbeat
         now = monotonic()
         if self.warmup_at is None or now - self.last_heartbeat > 0.4:
             self.warmup_at = now
         self.last_heartbeat = now
         message.timestamp = self.native.timestamp()
-        message.position = True
         # PX4 requires a setpoint newer than position-control activation. Keep
         # the one cached target current across mode entry and explicit arming.
         if self.setpoint is not None:

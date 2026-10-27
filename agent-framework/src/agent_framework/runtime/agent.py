@@ -88,6 +88,28 @@ class FactoryContext:
     instance_configuration: Mapping[str, object] = field(default_factory=dict)
 
 
+class LazyBufferMap(dict[str, Buffer[object]]):
+    """On-demand buffer allocation; only creates delivery queues when actively accessed."""
+
+    def __init__(self, capacity: int, allowed: set[str]) -> None:
+        super().__init__()
+        self._capacity = capacity
+        self._allowed = allowed
+
+    def __missing__(self, key: str) -> Buffer[object]:
+        buf = Buffer[object](self._capacity, target=key)
+        self[key] = buf
+        return buf
+
+    def __contains__(self, key: object) -> bool:
+        if isinstance(key, str) and key in self._allowed:
+            if super().__contains__(key):
+                return True
+            self[key] = Buffer[object](self._capacity, target=key)
+            return True
+        return False
+
+
 class Operation:
     def __init__(
         self, agent: AgentRuntime, owner: str, capacity: int, timeout: float | None
@@ -95,11 +117,12 @@ class Operation:
         self.agent = agent
         self.owner = owner
         self.end = float("inf") if timeout is None else deadline(timeout)
-        self.buffers = {
-            item.id: Buffer[object](capacity, target=item.id)
+        allowed = {
+            item.id
             for item in agent.spec.channels
             if item.owner == owner and item.direction == "agent_to_consumer"
         }
+        self.buffers = LazyBufferMap(capacity, allowed)
         self.closed = False
         self.lock = RLock()
         self.cleanup: list[Callable[[], None]] = []

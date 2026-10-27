@@ -20,16 +20,18 @@ class Lane:
         self.pending = False
         self.uncertain = False
 
-    def acquire(self) -> None:
+    def acquire(self, *, force: bool = False) -> None:
         with self.lock:
-            if self.uncertain:
+            if self.uncertain and not force:
                 raise AgentError(
                     FailureCode.NOT_READY,
                     "Previous PX4 command outcome is uncertain; recreate runtime",
                 )
-            if self.pending:
+            if self.pending and not force:
                 raise AgentError(FailureCode.BUSY, "PX4 command service is busy")
             self.pending = True
+            if force:
+                self.uncertain = False
 
     def release(self, *, uncertain: bool = False) -> None:
         with self.lock:
@@ -111,47 +113,94 @@ class CommandClient:
             self.native.node.destroy_timer(self.timer)
             self.timer = None
 
+    def _prepare_send(self, operation: Operation, is_emergency: bool) -> None:
+        if self.closed:
+            raise AgentError(FailureCode.CLOSED, "PX4 command client closed")
+        ready = getattr(self.client, "service_is_ready", None)
+        if ready is None or not ready():
+            if not self.client.wait_for_service(
+                timeout_sec=min(1.0, max(0.0, operation.end - monotonic()))
+            ):
+                raise AgentError(FailureCode.TIMEOUT, "PX4 command service unavailable")
+        if is_emergency and self.pending is not None:
+            prev_future, prev_op, _ = self.pending
+            self.pending = None
+            self._stop_timer()
+            if hasattr(self.client, "remove_pending_request"):
+                self.client.remove_pending_request(prev_future)
+            prev_future.cancel()
+            if not prev_op.closed:
+                prev_op.fail(AgentError(FailureCode.CANCELLED, "Preempted by emergency command"))
+        self.lane.acquire(force=is_emergency)
+
+    def _build_request(self, command: int, parameters: tuple[float, ...]) -> Any:
+        request = self.interface.Request()
+        message = request.request
+        message.timestamp = self.native.timestamp()
+        message.command = command
+        message.target_system = self.context.instance_configuration.get(
+            "target_system", self.context.configuration["target_system"]
+        )
+        message.target_component = self.context.instance_configuration.get(
+            "target_component", self.context.configuration["target_component"]
+        )
+        message.source_system = 245
+        message.source_component = 191
+        message.from_external = True
+        padded = (*parameters, *(0.0 for _ in range(7 - len(parameters))))
+        (
+            message.param1,
+            message.param2,
+            message.param3,
+            message.param4,
+            message.param5,
+            message.param6,
+            message.param7,
+        ) = padded
+        return request
+
+    def _make_done_callback(
+        self, command: int, operation: Operation, completed: Callable[[str], None]
+    ) -> Callable[[Any], None]:
+        def done(result: Any) -> None:
+            with self.lock:
+                if self.pending is None or self.pending[0] is not result:
+                    return
+                self.pending = None
+                self._stop_timer()
+                try:
+                    reply = result.result().reply
+                    if reply.command != command:
+                        raise ValueError("PX4 acknowledgement command mismatch")
+                    status = _ACKS.get(reply.result, "unknown")
+                    self.lane.release(uncertain=status in ("in_progress", "unknown"))
+                except Exception as error:
+                    self.lane.release(uncertain=True)
+                    operation.fail(AgentError(FailureCode.TRANSPORT, str(error)))
+                    return
+            if not operation.closed:
+                completed(status)
+
+        return done
+
     def send(
         self,
         command: int,
         parameters: tuple[float, ...],
         operation: Operation,
         completed: Callable[[str], None],
+        *,
+        force: bool = False,
     ) -> None:
+        is_emergency = (
+            force
+            or command in (21, 176)
+            or (command == 400 and bool(parameters) and parameters[0] == 0.0)
+        )
         with self.lock:
-            if self.closed:
-                raise AgentError(FailureCode.CLOSED, "PX4 command client closed")
-            if not self.client.wait_for_service(
-                timeout_sec=min(1.0, max(0.0, operation.end - monotonic()))
-            ):
-                raise AgentError(FailureCode.TIMEOUT, "PX4 command service unavailable")
-            self.lane.acquire()
+            self._prepare_send(operation, is_emergency)
             try:
-                request = self.interface.Request()
-                message = request.request
-                message.timestamp = self.native.timestamp()
-                message.command = command
-                message.target_system = self.context.instance_configuration.get(
-                    "target_system", self.context.configuration["target_system"]
-                )
-                message.target_component = self.context.instance_configuration.get(
-                    "target_component", self.context.configuration["target_component"]
-                )
-                message.source_system = 245
-                message.source_component = 191
-                message.from_external = True
-                # Seven fixed fields: descriptor expansion occurs once per command,
-                # never schema interpretation or plugin discovery.
-                padded = (*parameters, *(0.0 for _ in range(7 - len(parameters))))
-                (
-                    message.param1,
-                    message.param2,
-                    message.param3,
-                    message.param4,
-                    message.param5,
-                    message.param6,
-                    message.param7,
-                ) = padded
+                request = self._build_request(command, parameters)
                 future = self.client.call_async(request)
                 self.pending = future, operation, min(operation.end, monotonic() + 5.0)
                 if self.timer is None:
@@ -162,26 +211,7 @@ class CommandClient:
                 self.lane.release()
                 raise
 
-            def done(result: Any) -> None:
-                with self.lock:
-                    if self.pending is None or self.pending[0] is not result:
-                        return
-                    self.pending = None
-                    self._stop_timer()
-                    try:
-                        reply = result.result().reply
-                        if reply.command != command:
-                            raise ValueError("PX4 acknowledgement command mismatch")
-                        status = _ACKS.get(reply.result, "unknown")
-                        self.lane.release(uncertain=status in ("in_progress", "unknown"))
-                    except Exception as error:
-                        self.lane.release(uncertain=True)
-                        operation.fail(AgentError(FailureCode.TRANSPORT, str(error)))
-                        return
-                if not operation.closed:
-                    completed(status)
-
-            future.add_done_callback(done)
+            future.add_done_callback(self._make_done_callback(command, operation, completed))
 
     def check(self) -> None:
         with self.lock:

@@ -286,3 +286,42 @@ def test_instance_target_does_not_mutate_build_configuration(context: Any) -> No
     assert context.services.node.requests[-1].request.target_system == 2
     assert context.configuration["target_system"] == 1
     component.close()
+
+
+def test_emergency_command_bypasses_uncertain_lane(context: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    arm_comp = runtime.create_command(context)
+    arm_comp.start()
+    op1: Any = Operation()
+    context.senders["control.request"](NS(), op1)
+    monkeypatch.setattr(transport, "monotonic", lambda: float("inf"))
+    assert arm_comp.client is not None
+    arm_comp.client.check()
+    assert op1.failures[0].code == FailureCode.TIMEOUT
+    assert arm_comp.client.lane.uncertain
+
+    # Regular command is blocked by uncertainty
+    with pytest.raises(AgentError, match="uncertain"):
+        context.senders["control.request"](NS(), Operation())
+
+    # Emergency command (disarm) bypasses uncertainty and dispatches
+    disarm_context = NS(
+        binding_id="disarm_ctl",
+        instance_configuration={},
+        configuration=context.configuration,
+        realization={"internal_communication": {"operation": "disarm"}},
+        services=context.services,
+        register=lambda key, cb: context.senders.update({key: cb}),
+        emit=lambda *a: None,
+        output=[],
+        senders=context.senders,
+    )
+    disarm_comp = runtime.create_command(disarm_context)
+    disarm_comp.start()
+    op_disarm: Any = Operation()
+    context.senders["disarm_ctl.request"](NS(), op_disarm)
+    assert not arm_comp.client.lane.uncertain
+    assert context.services.node.requests[-1].request.command == 400
+    assert context.services.node.requests[-1].request.param1 == 0.0
+    arm_comp.close()
+    disarm_comp.close()
+

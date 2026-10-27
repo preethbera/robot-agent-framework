@@ -159,6 +159,46 @@ def test_command_timeout_and_bounded_lane(
     with pytest.raises(AgentError, match="uncertain"):
         context.senders["control.request"](NS(), Operation())
     component.close()
+
+
+def test_ardupilot_emergency_command_bypasses_uncertainty(
+    context: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    component = runtime.create_command(context)
+    component.start()
+    operation: Any = Operation()
+    context.senders["control.request"](NS(), operation)
+    monkeypatch.setattr(transport, "monotonic", lambda: float("inf"))
+    assert component.client is not None
+    component.client.check()
+    assert operation.failures[0].code == FailureCode.TIMEOUT
+    assert component.client.lane.uncertain
+
+    # Regular command is blocked
+    with pytest.raises(AgentError, match="uncertain"):
+        context.senders["control.request"](NS(), Operation())
+
+    # Emergency command (disarm: arm=False) bypasses uncertainty
+    disarm_context = NS(
+        binding_id="disarm_ctl",
+        instance_configuration={},
+        configuration=context.configuration,
+        realization={"internal_communication": {"operation": "disarm"}},
+        services=context.services,
+        register=lambda key, callback: context.senders.update({key: callback}),
+        emit=lambda *args: None,
+        output=[],
+        senders=context.senders,
+    )
+    disarm_comp = runtime.create_command(disarm_context)
+    disarm_comp.start()
+    op_disarm: Any = Operation()
+    context.senders["disarm_ctl.request"](NS(), op_disarm)
+    assert not component.client.lane.uncertain
+    assert getattr(context.services.node.requests[-1], "arm", None) is False
+    component.close()
+    disarm_comp.close()
+
     assert not context.services.node.entities
 
 

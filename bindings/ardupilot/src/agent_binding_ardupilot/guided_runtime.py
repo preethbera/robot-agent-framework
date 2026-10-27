@@ -44,6 +44,8 @@ class PositionComponent:
         self.control_lane = lane_for(self.context.services.runtime, "guided:" + name)
         self.heartbeat = native.node.create_publisher(self.heartbeat_type, name, qos)
         self.resources.append((native.node.destroy_publisher, self.heartbeat))
+        self._cached_setpoint = self.setpoint_type()
+        self._cached_heartbeat = self.heartbeat_type()
         for ep_name, callback in (("pose", self.pose_update),):
             interface, name, qos = native.entity(ep_name)
             subscription = native.node.create_subscription(
@@ -76,7 +78,7 @@ class PositionComponent:
                 raise ValueError("Yaw must be in [-pi, pi] radians")
             if not self.valid or monotonic() - self.position_time > 1.0:
                 raise AgentError(FailureCode.NOT_READY, "Fresh valid position is required")
-            message = self.setpoint_type()
+            message = self._cached_setpoint
             message.pose.position.x = float(value.x)
             message.pose.position.y = float(value.y)
             message.pose.position.z = float(value.z)
@@ -99,7 +101,7 @@ class PositionComponent:
 
     def _heartbeat(self) -> None:
         assert self.native is not None
-        message = self.heartbeat_type()
+        message = self._cached_heartbeat
         now = monotonic()
         if self.warmup_at is None or now - self.last_heartbeat > 0.4:
             self.warmup_at = now

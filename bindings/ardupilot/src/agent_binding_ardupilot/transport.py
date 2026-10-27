@@ -20,16 +20,18 @@ class Lane:
         self.pending = False
         self.uncertain = False
 
-    def acquire(self) -> None:
+    def acquire(self, *, force: bool = False) -> None:
         with self.lock:
-            if self.uncertain:
+            if self.uncertain and not force:
                 raise AgentError(
                     FailureCode.NOT_READY,
                     "Previous ArduPilot command outcome is uncertain; recreate runtime",
                 )
-            if self.pending:
+            if self.pending and not force:
                 raise AgentError(FailureCode.BUSY, "ArduPilot command service is busy")
             self.pending = True
+            if force:
+                self.uncertain = False
 
     def release(self, *, uncertain: bool = False) -> None:
         with self.lock:
@@ -99,20 +101,66 @@ class ServiceClient:
             0.05, self.check, callback_group=self.context.services.group
         )
 
+    def _prepare_send(self, operation: Operation, is_emergency: bool) -> None:
+        if self.closed:
+            raise AgentError(FailureCode.CLOSED, "ArduPilot service client closed")
+        ready = getattr(self.client, "service_is_ready", None)
+        if ready is None or not ready():
+            if not self.client.wait_for_service(
+                timeout_sec=min(1.0, max(0.0, operation.end - monotonic()))
+            ):
+                raise AgentError(FailureCode.TIMEOUT, "ArduPilot service unavailable")
+        if is_emergency and self.pending is not None:
+            prev_future, prev_op, _ = self.pending
+            self.pending = None
+            self._stop_timer()
+            if hasattr(self.client, "remove_pending_request"):
+                self.client.remove_pending_request(prev_future)
+            prev_future.cancel()
+            if not prev_op.closed:
+                prev_op.fail(AgentError(FailureCode.CANCELLED, "Preempted by emergency command"))
+        self.lane.acquire(force=is_emergency)
+
+    def _make_done_callback(
+        self, operation: Operation, completed: Callable[[Any], None]
+    ) -> Callable[[Any], None]:
+        def done(result: Any) -> None:
+            with self.lock:
+                if self.pending is None or self.pending[0] is not result:
+                    return
+                self.pending = None
+                try:
+                    reply = result.result()
+                    self.lane.release()
+                except Exception as error:
+                    self.lane.release(uncertain=True)
+                    operation.fail(AgentError(FailureCode.TRANSPORT, str(error)))
+                    return
+            if not operation.closed:
+                completed(reply)
+
+        return done
+
+    def _stop_timer(self) -> None:
+        if self.timer is not None:
+            self.native.node.destroy_timer(self.timer)
+            self.timer = None
+
     def send(
         self,
         request_fields: dict[str, Any],
         operation: Operation,
         completed: Callable[[Any], None],
+        *,
+        force: bool = False,
     ) -> None:
+        is_emergency = (
+            force
+            or request_fields.get("arm") is False
+            or request_fields.get("mode") in (5, 6, 9)
+        )
         with self.lock:
-            if self.closed:
-                raise AgentError(FailureCode.CLOSED, "ArduPilot service client closed")
-            if not self.client.wait_for_service(
-                timeout_sec=min(1.0, max(0.0, operation.end - monotonic()))
-            ):
-                raise AgentError(FailureCode.TIMEOUT, "ArduPilot service unavailable")
-            self.lane.acquire()
+            self._prepare_send(operation, is_emergency)
             try:
                 request = self.interface.Request()
                 for key, value in request_fields.items():
@@ -123,22 +171,7 @@ class ServiceClient:
                 self.lane.release()
                 raise
 
-            def done(result: Any) -> None:
-                with self.lock:
-                    if self.pending is None or self.pending[0] is not result:
-                        return
-                    self.pending = None
-                    try:
-                        reply = result.result()
-                        self.lane.release()
-                    except Exception as error:
-                        self.lane.release(uncertain=True)
-                        operation.fail(AgentError(FailureCode.TRANSPORT, str(error)))
-                        return
-                if not operation.closed:
-                    completed(reply)
-
-            future.add_done_callback(done)
+            future.add_done_callback(self._make_done_callback(operation, completed))
 
     def check(self) -> None:
         with self.lock:

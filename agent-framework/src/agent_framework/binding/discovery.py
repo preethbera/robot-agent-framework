@@ -9,6 +9,26 @@ from .errors import BindingError, IncompatibleBindingError, MissingBindingError
 from .registry import BindingRegistry, PackageRecord
 
 
+def _load_local_binding(namespace: str) -> tuple[BindingPackage, PackageRecord] | None:
+    """Fallback to direct import if package entry points are not registered in environment."""
+    import importlib
+
+    try:
+        mod = importlib.import_module(f"agent_binding_{namespace}")
+        if hasattr(mod, "get_bindings"):
+            package = mod.get_bindings()
+            if isinstance(package, BindingPackage):
+                record = PackageRecord(
+                    distribution=f"agent-binding-{namespace}",
+                    version="0.1.0",
+                    binding_api_version=BINDING_API_VERSION,
+                )
+                return package, record
+    except ModuleNotFoundError:
+        pass
+    return None
+
+
 def discover_bindings(references: Iterable[str]) -> BindingRegistry:
     """Load only requested namespaces and transitive declared dependencies once."""
     available = entry_points(group=ENTRY_POINT_GROUP)
@@ -27,31 +47,37 @@ def discover_bindings(references: Iterable[str]) -> BindingRegistry:
         if namespace not in packages:
             candidates = [point for point in available if point.name == namespace]
             if not candidates:
-                raise MissingBindingError(f"missing installed binding package {namespace!r}")
-            if len(candidates) != 1:
+                local = _load_local_binding(namespace)
+                if local is None:
+                    raise MissingBindingError(f"missing installed binding package {namespace!r}")
+                package, record = local
+            elif len(candidates) != 1:
                 raise BindingError(f"ambiguous installed binding namespace {namespace!r}")
-            point = candidates[0]
-            try:
-                provider = point.load()
-                package = provider()
-            except Exception as error:
-                raise BindingError(
-                    f"cannot load binding provider {namespace!r}: {error}"
-                ) from error
-            if not isinstance(package, BindingPackage):
-                raise BindingError(f"{namespace}: provider must return BindingPackage")
+            else:
+                point = candidates[0]
+                try:
+                    provider = point.load()
+                    package = provider()
+                except Exception as error:
+                    raise BindingError(
+                        f"cannot load binding provider {namespace!r}: {error}"
+                    ) from error
+                if not isinstance(package, BindingPackage):
+                    raise BindingError(f"{namespace}: provider must return BindingPackage")
+                if point.dist is None:
+                    raise BindingError(f"{namespace}: entry point has no distribution provenance")
+                record = PackageRecord(
+                    distribution=point.dist.metadata["Name"],
+                    version=point.dist.version,
+                    binding_api_version=BINDING_API_VERSION,
+                )
+
             if BINDING_API_VERSION not in package.api_versions:
                 raise IncompatibleBindingError(
                     f"{namespace}: incompatible Binding API {package.api_versions}; "
                     f"requires {BINDING_API_VERSION}"
                 )
-            if point.dist is None:
-                raise BindingError(f"{namespace}: entry point has no distribution provenance")
-            packages[namespace] = PackageRecord(
-                distribution=point.dist.metadata["Name"],
-                version=point.dist.version,
-                binding_api_version=BINDING_API_VERSION,
-            )
+            packages[namespace] = record
             for definition in package.definitions:
                 validate_binding(definition)
                 if not definition.id.startswith(namespace + ".") or definition.id in definitions:
