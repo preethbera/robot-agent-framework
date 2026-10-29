@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from agent_framework.model import PayloadSchema, ScalarType, SchemaKind
+from .transport import COMMAND_ACKS, ack_status
 
 
 def scalar(kind: ScalarType) -> PayloadSchema:
@@ -12,6 +13,7 @@ def scalar(kind: ScalarType) -> PayloadSchema:
 
 NUMBER = scalar(ScalarType.FLOAT64)
 STRING = scalar(ScalarType.STRING)
+BOOLEAN = scalar(ScalarType.BOOL)
 EMPTY = PayloadSchema(kind=SchemaKind.RECORD)
 VECTOR = PayloadSchema(
     kind=SchemaKind.RECORD,
@@ -90,3 +92,20 @@ INSTANCE_CONFIG = PayloadSchema(
         for name in ("target_system", "target_component")
     },
 )
+
+__all__ = [
+    "BOOLEAN",
+    "COMMAND_ACKS",
+    "CONFIG",
+    "DEFAULTS",
+    "EMPTY",
+    "INSTANCE_CONFIG",
+    "NUMBER",
+    "STRING",
+    "VECTOR",
+    "ack_status",
+    "endpoint",
+    "mapping",
+    "scalar",
+    "validate_config",
+]

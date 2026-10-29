@@ -1,4 +1,4 @@
-"""Position-control session declaration, separate from reusable native transport."""
+"""Offboard session declarations (position and velocity control)."""
 
 from collections.abc import Mapping
 
@@ -35,11 +35,18 @@ from .catalog import (
     validate_config,
 )
 
-SETPOINT = PayloadSchema(
+POSITION_SETPOINT = PayloadSchema(
     kind=SchemaKind.RECORD,
     fields={key: NUMBER for key in ("x", "y", "z", "yaw")},
     metadata={"frame": "local_NED", "position_units": "m", "yaw_units": "rad"},
 )
+
+VELOCITY_SETPOINT = PayloadSchema(
+    kind=SchemaKind.RECORD,
+    fields={key: NUMBER for key in ("vx", "vy", "vz", "yawspeed")},
+    metadata={"frame": "local_NED", "velocity_units": "m/s", "yawspeed_units": "rad/s"},
+)
+
 OFFBOARD_DEFAULTS = {**DEFAULTS, "liveness_owner": "binding"}
 OFFBOARD_CONFIG = PayloadSchema(
     kind=SchemaKind.RECORD,
@@ -54,13 +61,13 @@ OFFBOARD_CONFIG = PayloadSchema(
 )
 
 
-def semantics(config: Mapping[str, object]) -> BindingSemantics:
+def _semantics(config: Mapping[str, object], name: str, schema: PayloadSchema) -> BindingSemantics:
     validate_config(config)
     channels: tuple[Channel, ...] = (
         Channel(
             id="setpoint",
             direction=Direction.CONSUMER_TO_AGENT,
-            schema=SETPOINT,
+            schema=schema,
             cardinality=Cardinality.STREAM,
             lifetime=Lifetime.SESSION,
             purpose=Purpose.INPUT,
@@ -97,8 +104,8 @@ def semantics(config: Mapping[str, object]) -> BindingSemantics:
         )
     return BindingSemantics(
         element=Capability(
-            id="position_control",
-            description="Explicit local NED position control; does not arm",
+            id=f"{name}_control",
+            description=f"Explicit local NED {name} control; does not arm",
             execution=Execution.SESSION,
             channels=tuple(c.id for c in channels),
         ),
@@ -147,19 +154,43 @@ def realization(config: Mapping[str, object]) -> Mapping[str, object]:
     }
 
 
-def definition() -> BindingDefinition:
-    baseline = semantics(OFFBOARD_DEFAULTS)
+def _make_definition(name: str, schema: PayloadSchema, factory: str) -> BindingDefinition:
+    baseline = _semantics(OFFBOARD_DEFAULTS, name, schema)
     return BindingDefinition(
-        id="px4.offboard.position",
-        description="PX4 Offboard position session",
+        id=f"px4.offboard.{name}",
+        description=f"PX4 Offboard {name} session",
         primitive=Primitive.CAPABILITY,
         default_semantics=baseline,
         mandatory_requirements=BindingRequirements(channels=baseline.channels),
         configuration_schema=OFFBOARD_CONFIG,
         configuration_defaults=OFFBOARD_DEFAULTS,
-        configure=semantics,
+        configure=lambda cfg: _semantics(cfg, name, schema),
         configure_ros2=realization,
         instance_configuration_schema=INSTANCE_CONFIG,
         runtime_mode=RuntimeMode.CODE_BACKED,
-        runtime_factory="agent_binding_px4.offboard_runtime:create_component",
+        runtime_factory=factory,
     )
+
+
+def position_definition() -> BindingDefinition:
+    return _make_definition(
+        "position",
+        POSITION_SETPOINT,
+        "agent_binding_px4.offboard_runtime:create_component",
+    )
+
+
+def velocity_definition() -> BindingDefinition:
+    return _make_definition(
+        "velocity",
+        VELOCITY_SETPOINT,
+        "agent_binding_px4.offboard_runtime:create_velocity_component",
+    )
+
+
+def definitions() -> tuple[BindingDefinition, ...]:
+    return (position_definition(), velocity_definition())
+
+
+def definition() -> BindingDefinition:
+    return position_definition()

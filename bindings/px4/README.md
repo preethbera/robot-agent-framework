@@ -20,7 +20,7 @@ compatibility from the upstream interface package's `package.xml` version.
 Build the generic image, then run from the project root:
 
 ```sh
-docker build -f docker/Dockerfile.px4 -t agent-framework-px4:0.1.0 .
+docker build --target px4 -f docker/Dockerfile -t agent-framework-px4:0.1.0 .
 ```
 
 SITL acceptance uses PX4's built-in SIH multicopter simulator: real firmware,

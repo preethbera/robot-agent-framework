@@ -18,3 +18,4 @@ class BindingPackage:
 
     api_versions: tuple[str, ...]
     definitions: tuple[BindingDefinition, ...]
+    environment_provider: str | None = None

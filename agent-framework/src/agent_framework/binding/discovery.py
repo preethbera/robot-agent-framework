@@ -22,6 +22,7 @@ def _load_local_binding(namespace: str) -> tuple[BindingPackage, PackageRecord] 
                     distribution=f"agent-binding-{namespace}",
                     version="0.1.0",
                     binding_api_version=BINDING_API_VERSION,
+                    environment_provider=package.environment_provider,
                 )
                 return package, record
     except ModuleNotFoundError:
@@ -70,6 +71,7 @@ def discover_bindings(references: Iterable[str]) -> BindingRegistry:
                     distribution=point.dist.metadata["Name"],
                     version=point.dist.version,
                     binding_api_version=BINDING_API_VERSION,
+                    environment_provider=package.environment_provider,
                 )
 
             if BINDING_API_VERSION not in package.api_versions:

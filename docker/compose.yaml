@@ -4,6 +4,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      target: dev
       args:
         DEV_UID: ${LOCAL_UID:-1000}
         DEV_GID: ${LOCAL_GID:-1000}

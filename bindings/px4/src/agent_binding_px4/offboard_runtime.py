@@ -31,6 +31,21 @@ class PositionComponent:
         self.setpoint: Any = None
         self.resources: list[tuple[Any, Any]] = []
 
+    def _init_caches(self) -> None:
+        self._cached_setpoint = self.setpoint_type()
+        self._cached_setpoint.position = [0.0, 0.0, 0.0]
+        self._cached_setpoint.velocity = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.acceleration = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.jerk = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.yawspeed = math.nan
+
+        self._cached_heartbeat = self.heartbeat_type()
+        self._cached_heartbeat.position = True
+        self._cached_heartbeat.velocity = False
+        self._cached_heartbeat.acceleration = False
+        self._cached_heartbeat.attitude = False
+        self._cached_heartbeat.body_rate = False
+
     def start(self) -> None:
         if self.native is not None or self.closed:
             return
@@ -45,20 +60,8 @@ class PositionComponent:
         self.heartbeat = native.node.create_publisher(self.heartbeat_type, name, qos)
         self.resources.append((native.node.destroy_publisher, self.heartbeat))
 
-        # Reusable in-place messages for zero-allocation streaming
-        self._cached_setpoint = self.setpoint_type()
-        self._cached_setpoint.position = [0.0, 0.0, 0.0]
-        self._cached_setpoint.velocity = [math.nan, math.nan, math.nan]
-        self._cached_setpoint.acceleration = [math.nan, math.nan, math.nan]
-        self._cached_setpoint.jerk = [math.nan, math.nan, math.nan]
-        self._cached_setpoint.yawspeed = math.nan
+        self._init_caches()
 
-        self._cached_heartbeat = self.heartbeat_type()
-        self._cached_heartbeat.position = True
-        self._cached_heartbeat.velocity = False
-        self._cached_heartbeat.acceleration = False
-        self._cached_heartbeat.attitude = False
-        self._cached_heartbeat.body_rate = False
         for endpoint, callback in (("position", self.position), ("state", self.state)):
             interface, name, qos = native.entity(endpoint)
             subscription = native.node.create_subscription(
@@ -91,6 +94,20 @@ class PositionComponent:
                 self.active_reported = True
                 self.context.emit(self.context.binding_id + ".status", "active", self.operation)
 
+    def _acquire_session(self, operation: Operation, now: float) -> None:
+        if self.operation is not operation:
+            if self.operation is not None:
+                raise AgentError(FailureCode.BUSY, "Offboard session still active")
+            self.control_lane.acquire()
+            self.operation = operation
+            self.started_at = now
+            self.warmup_at = None
+            self.last_pulse = self.started_at
+            self.sent_mode = self.active_reported = False
+            operation.transport[self.context.binding_id] = "started"
+            operation.cleanup.append(lambda: self.stop(operation))
+            self.context.emit(self.context.binding_id + ".status", "warming_up", operation)
+
     def send(self, value: Any, operation: Operation) -> None:
         with self.lock:
             assert self.native is not None
@@ -100,26 +117,16 @@ class PositionComponent:
                 raise ValueError("Position and yaw must be finite")
             if not -math.pi <= value.yaw <= math.pi:
                 raise ValueError("Yaw must be in [-pi, pi] radians")
-            if not self.valid or monotonic() - self.position_time > 1.0:
-                raise AgentError(FailureCode.NOT_READY, "Fresh valid local position is required")
+            now = monotonic()
+            if not self.valid or now - self.position_time > 1.0:
+                raise AgentError(FailureCode.NOT_READY, "Fresh valid local position required")
             message = self._cached_setpoint
             message.timestamp = self.native.timestamp()
             message.position[0] = value.x
             message.position[1] = value.y
             message.position[2] = value.z
             message.yaw = value.yaw
-            if self.operation is not operation:
-                if self.operation is not None:
-                    raise AgentError(FailureCode.BUSY, "Offboard session still active")
-                self.control_lane.acquire()
-                self.operation = operation
-                self.started_at = monotonic()
-                self.warmup_at = None
-                self.last_pulse = self.started_at
-                self.sent_mode = self.active_reported = False
-                operation.transport[self.context.binding_id] = "started"
-                operation.cleanup.append(lambda: self.stop(operation))
-                self.context.emit(self.context.binding_id + ".status", "warming_up", operation)
+            self._acquire_session(operation, now)
             self.setpoint = message
             self.publisher.publish(message)
 
@@ -131,8 +138,6 @@ class PositionComponent:
             self.warmup_at = now
         self.last_heartbeat = now
         message.timestamp = self.native.timestamp()
-        # PX4 requires a setpoint newer than position-control activation. Keep
-        # the one cached target current across mode entry and explicit arming.
         if self.setpoint is not None:
             self.setpoint.timestamp = message.timestamp
             self.publisher.publish(self.setpoint)
@@ -228,5 +233,49 @@ class PositionComponent:
             self.resources.clear()
 
 
+class VelocityComponent(PositionComponent):
+    def _init_caches(self) -> None:
+        super()._init_caches()
+        self._cached_setpoint.position = [math.nan, math.nan, math.nan]
+        self._cached_setpoint.velocity = [0.0, 0.0, 0.0]
+        self._cached_setpoint.yawspeed = 0.0
+        self._cached_heartbeat.position = False
+        self._cached_heartbeat.velocity = True
+
+    def send(self, value: Any, operation: Operation) -> None:
+        with self.lock:
+            assert self.native is not None
+            if operation.transport.get(self.context.binding_id) == "stopped":
+                raise AgentError(FailureCode.CLOSED, "Offboard session has ended")
+            if not all(math.isfinite(v) for v in (value.vx, value.vy, value.vz, value.yawspeed)):
+                raise ValueError("Velocity and yawspeed must be finite")
+            now = monotonic()
+            if not self.valid or now - self.position_time > 1.0:
+                raise AgentError(FailureCode.NOT_READY, "Fresh valid local position required")
+            message = self._cached_setpoint
+            message.timestamp = self.native.timestamp()
+            message.velocity[0] = value.vx
+            message.velocity[1] = value.vy
+            message.velocity[2] = value.vz
+            message.yawspeed = value.yawspeed
+            self._acquire_session(operation, now)
+            self.setpoint = message
+            self.publisher.publish(message)
+
+
 def create_component(context: FactoryContext) -> PositionComponent:
     return PositionComponent(context)
+
+
+def create_velocity_component(context: FactoryContext) -> VelocityComponent:
+    return VelocityComponent(context)
+
+
+__all__ = [
+    "Native",
+    "PositionComponent",
+    "VelocityComponent",
+    "create_component",
+    "create_velocity_component",
+    "monotonic",
+]

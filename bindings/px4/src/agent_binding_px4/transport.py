@@ -89,6 +89,11 @@ _ACKS = {
     5: "in_progress",
     6: "cancelled",
 }
+COMMAND_ACKS = _ACKS
+
+
+def ack_status(value: int) -> str:
+    return COMMAND_ACKS.get(int(value), "unknown")
 
 
 class CommandClient:
@@ -194,7 +199,7 @@ class CommandClient:
     ) -> None:
         is_emergency = (
             force
-            or command in (21, 176)
+            or command in (21, 176, 185)
             or (command == 400 and bool(parameters) and parameters[0] == 0.0)
         )
         with self.lock:

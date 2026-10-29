@@ -12,6 +12,7 @@ class PackageRecord:
     distribution: str
     version: str
     binding_api_version: str
+    environment_provider: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

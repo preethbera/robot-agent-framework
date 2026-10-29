@@ -13,6 +13,9 @@ dependencies = []
 [project.optional-dependencies]
 build = ["ruamel.yaml==0.18.16"]
 
+[project.scripts]
+agent = "agent_framework.cli.main:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false

@@ -325,3 +325,21 @@ def test_emergency_command_bypasses_uncertain_lane(context: Any, monkeypatch: py
     arm_comp.close()
     disarm_comp.close()
 
+
+def test_velocity_offboard_component(context: Any) -> None:
+    component = offboard_runtime.create_velocity_component(context)
+    component.start()
+    component.position(NS(xy_valid=True, z_valid=True))
+    op = Operation()
+    context.senders["control.setpoint"](NS(vx=1.5, vy=-0.5, vz=0.2, yawspeed=0.1), op)
+    assert component._cached_setpoint.velocity == [1.5, -0.5, 0.2]
+    assert component._cached_setpoint.yawspeed == 0.1
+    assert component._cached_heartbeat.velocity is True
+    assert component._cached_heartbeat.position is False
+    with pytest.raises(ValueError, match="finite"):
+        context.senders["control.setpoint"](
+            NS(vx=float("nan"), vy=0.0, vz=0.0, yawspeed=0.0), op
+        )
+    component.close()
+
+

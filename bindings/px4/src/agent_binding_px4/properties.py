@@ -26,6 +26,20 @@ def definitions() -> tuple[BindingDefinition, ...]:
         fields={key: NUMBER for key in ("vx", "vy", "vz")},
         metadata={"frame": "local_NED", "units": "m/s"},
     )
+    global_pos = PayloadSchema(
+        kind=SchemaKind.RECORD,
+        fields={key: NUMBER for key in ("lat", "lon", "alt")},
+        metadata={"reference": "WGS84_AMSL"},
+    )
+    battery = PayloadSchema(
+        kind=SchemaKind.RECORD,
+        fields={"voltage_v": NUMBER, "remaining_percent": NUMBER},
+    )
+    attitude = PayloadSchema(
+        kind=SchemaKind.RECORD,
+        fields={key: NUMBER for key in ("roll", "pitch", "yaw")},
+        metadata={"units": "rad"},
+    )
     return tuple(
         _property(*item)
         for item in (
@@ -50,6 +64,38 @@ def definitions() -> tuple[BindingDefinition, ...]:
                 velocity,
                 "VehicleLocalPosition",
                 "out/vehicle_local_position",
+                None,
+                None,
+            ),
+            (
+                "global_position",
+                global_pos,
+                "VehicleGlobalPosition",
+                "out/vehicle_global_position",
+                None,
+                None,
+            ),
+            (
+                "battery",
+                battery,
+                "BatteryStatus",
+                "out/battery_status",
+                None,
+                None,
+            ),
+            (
+                "attitude",
+                attitude,
+                "VehicleAttitude",
+                "out/vehicle_attitude",
+                None,
+                None,
+            ),
+            (
+                "angular_velocity",
+                VECTOR,
+                "VehicleAngularVelocity",
+                "out/vehicle_angular_velocity",
                 None,
                 None,
             ),
@@ -110,7 +156,7 @@ def _property(
 
 
 def armed_state(value: int) -> str:
-    return {1: "disarmed", 2: "armed"}.get(value, "unknown")
+    return {1: "disarmed", 2: "armed"}.get(int(value), "unknown")
 
 
 _MODES = {
